@@ -10,41 +10,10 @@ bibliography: "bibliography.bib"
 
 
 ```{r setup, include=FALSE, message = FALSE, warning=FALSE, error=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning=FALSE, error=FALSE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning=FALSE, error=FALSE, tidy='styler')
 ```
 
-## Introduction
-
-The following is a brief linguistic analysis of the use of racially charged language in William Faulkner's *Absalom, Absalom!*. Faulkner's representation of race was complicated, just as his own relationship with race was complex. As a Southern white moderate, he voiced his anguish over the dehumanization of African Americans under Jim Crow segregation, and, at the same, time could also casually refer to people as "niggers" during a public retelling of a [comic story](https://faulkner.lib.virginia.edu/display/wfaudio02_2.html#wfaudio02_2.2). There is no shortage of literature on Faulkner and race in general, and regarding *Absalom, Absalom!* in particular. Given this extensive critical history, it almost goes without saying that a computational analysis of word choice, especially with regard to racially charged language, cannot do justice to the complexities and nuances of either the text or Faulkner's broader critical intervention. Nevertheless, using techniques common in Corpus Linguistics (CL) it is possible to give a bird's-eye view of how the use of certain words is patterned. This pattern, can then in turn, inform subsequent close-readings. 
-
-The analysis demonstrates that Faulkner's use of racial language is not incidental but carefully patterned. This is particularly pronounced with his use of the word "nigger" - perhaps the most charged word in American English. Faulkner makes extensive use of this word throughout this text. As the data reveal, the n-word occurs most frequently in relation to Thomas Sutpen, and in particular his origin story in the 1830s in Tidewater, Virginia. When he is unceremoniously rebuffed at the front entrance of a plantation by an enslaved butler, he becomes simultaneously race and class conscious . The scene, and Sutpen's origin writ large, will replay themselves through the voices of the text's narrators. Although distinct, it would be a mistake to see these voices as singular. The linguistic analysis reveals overlapping patterns between narrators, indicating that while there may be differences in tone, register, and inflection the story material is communal. The narrator's do not own their voice any more than they own another person's story. They are the bard's of its transmission. 
-
-Needless to say, the n-word occurs frequently in this analysis. It is expressed only in its full form when directly quoting Faulkner. Otherwise, its full version has been deemed gratuitous and unnecessary for data analysis.
-
-### Overview
-
-The following piece uses several techniques available to standard CL analysis, alongside a more complex analysis exclusively available to practitioners who have access to the [*Digital Yoknapatawpha*](http://faulkner.iath.virginia.edu/) data set. These different techniques have been split into their own sections. 
-
-- **Part 1: Statistical Overview**  
-          Analysis of the general linguistic pattern of the texts including word frequency and word bigrams.
-- **Part 2: Sentiment Analysis**  
-          Analysis of racially charged language and the sentiments that surround the use of those words.
-- **Part 3: The Use of Racial Words by Characters, Time Period, and Locations**  
-          The *DY* database provides insight into what characters are where and at what time. Using this database, it is possible to reconstruct the language surrounding people, places, and times.^[All of the data was generated in the R programming language using the `tidyverse` suite of packages for the calculations and the `plotly` library for the graphics. The full repository is available at https://github.com/joostburgers/absalom_sentiment_analysis Due to copyright issues the repository does not include the *Absalom, Absalom!* text file used for data analysis. The text file used for text analysis was the 2011 Vintage Edition [@faulkner2011], which corresponds with the 1990 edition we used for *DY*]
-
-
-## Part 1: Statistical Overview *Absalom, Absalom!*
-
-### Text pre-processing
-
-With any textual analysis, some pre-processing is required. The steps that follow are standard procedures in CL. The text of *Absalom, Absalom!* was read in as a txt file. It was then broken into nine chapters, and further sub-setted into sentences. The individual words were subsequently "tokenized." The process of tokenization removes capital letters, special characters, and punctuation. It enables the computer to compare words more easily. Each "stop word" was then removed. These are words like: the, a, on, at, etc. that are very frequent in any text, and do not add to the analysis. The words were then lemmatized. Lemmatization reduces a word to the word stem. For example, "fathers" becomes "father." This way all instances of the concept "father" are unified as one instance. This prevents creating separate counts for words like father, fathers, father's, and fathers'.
-
-The resulting slate of words was tagged as racially charged by adding a column called race_word and indicating TRUE or FALSE for each word.^[This was done by creating a list of racial words and joining it to the data table through a left sided join. Essentially, it checks to see if a word like "Negro", "White", or "Octoroon" occurs and tags it as TRUE.] Such a list of racial words is necessarily imperfect as the words "black" and "white" could also denote colors and not racial designations. Still, with this pre-processing complete it is possible to provide some key statistical insights.
-
-### Word Frequency
-
-The chart below shows the ten most frequent non-racial words and racial words in the text. Hovering over the individual bars reveals their precise number, and clicking on TRUE and FALSE turns that particular series on and off.
-
+#### Load Libraries
 ```{r load_packages}
 library(tidyverse)
 library(tidytext)
@@ -55,7 +24,66 @@ library(plotly)
 library(textstem)
 library(shiny)
 library(lubridate)
+library(htmlTable)
 ```
+
+#### Load texts
+```{r load_text}
+#Read in the text
+absalom_df <- as.data.frame(read_file("absalom_cleaned_to_match_4_30_rev4.txt"))
+colnames(absalom_df) <- "text" 
+
+absalom_df <- absalom_df %>% 
+mutate(text = gsub("[‘’]", "'", text))
+```
+
+```{r _load_event_sentences}
+absalom_event_sentences <- read_csv("absalom_event_sentences_clean_2021_5_10.csv")
+
+#This file was created by recomposing the text based on the "First Words" column and matching the text segments with each event using a copy of the text. As this process is quite involved it has been branched out into a separate file: absalom_sentiment_text_processing. Full details on the process can be viewed there.
+
+```
+
+```{r absalom_event_word_count}
+event_length <- absalom_event_sentences %>%
+  mutate(event_words = str_count(event_sentence,  "\\S+")) %>%
+  select(EventID, begin_word, end_word, event_sentence, event_words)
+```
+
+
+```{r read_all_absalom_events}
+absalom_all_events <- read_csv("absalom_all_events_2021_5_11.csv")
+```
+
+```{r clean_up_absalom_events}
+#The full table is long and hard to work with. 
+absalom_events_short <- absalom_all_events %>%
+  select(3:11, 13, 21:27, 50, 52:54) %>% 
+  mutate(narrator = str_extract(Summary, "(?<=(SOURCE)).+[^]</p>]")) %>% 
+  mutate(narrator = str_replace_all(narrator,":","")) %>% 
+  left_join(event_length, by="EventID")
+```
+
+```{r read_all_DY_events}
+dy_events <- read_csv("full_database_2021_5_11.csv")
+
+
+```
+
+```{r clean_up_all_events}
+dy_events_short <- dy_events %>% 
+                    select(1:11, 21:27, 50, 52:54)
+
+
+```
+
+
+```{r load_race_words}
+#Read in the race words
+race_words <- read_csv("race_words.csv")
+```
+
+#### Load Chart Vars
 
 ```{r load_color_scheme, echo=FALSE}
 #Page styling
@@ -87,809 +115,240 @@ plot_font <- list(
 ```
 
 
-```{r load_text}
-#Read in the text
-absalom_df <- as.data.frame(read_file("absalom_cleaned_to_match_4_30_rev4.txt"))
-colnames(absalom_df) <- "text" 
 
-absalom_df <- absalom_df %>% 
-mutate(text = gsub("[‘’]", "'", text))
-```
-
-```{r load_race_words}
-#Read in the race words
-race_words <- read_csv("race_words.csv")
-```
-
-```{r _load_event_sentences}
-absalom_event_sentences <- read_csv("absalom_event_sentences_clean_2021_5_2.csv")
-
-#This file was created by recomposing the text based on the "First Words" column and matching the text segments with each event using a copy of the text. As this process is quite involved it has been branched out into a separate file: absalom_sentiment_text_processing. Full details on the process can be viewed there.
-
-```
+## Introduction
 
 
-```{r unnest_text}
-#unnest the text by sentence and then label each chapter number and sentence number.
-absalom_tidy <- absalom_df %>%
-  unnest_regex(text, text, pattern = "Chapter [:digit:]") %>% 
-  mutate(chapter = row_number()) %>%
-  unnest_regex(sentences, text, pattern = "[.?!]") %>% 
-  mutate(sentence_number = row_number()) %>%  
-  unnest_tokens(word, sentences) 
-  
-```
+### Overview
 
-```{r word_frequency}
-#Remove the stop words to reduce over counting
-data("stop_words")
-absalom_stats <- absalom_tidy %>%
-  anti_join(stop_words)
-```
+The following piece uses several techniques available to standard CL analysis, alongside a more complex analysis exclusively available to practitioners who have access to the [*Digital Yoknapatawpha*](http://faulkner.iath.virginia.edu/) data set. These different techniques have been split into their own sections. 
 
+- **Part 1: Characters**  
+          
+- **Part 2: Locations**  
+          
+- **Part 3: Events**  
 
-```{r add_race_words}
-#Mark each race word as true and then convert every non-race word as false. then add a column for the lemmatized words.
-
-absalom_race_stats <- absalom_stats %>%
-  mutate(word_lemma = textstem::lemmatize_words(word)) %>%
-  mutate(word_lemma = str_remove_all(word_lemma, "'s")) %>%
-  left_join(race_words, by = "word_lemma") %>%
-  mutate(race_word = replace_na(race_word, FALSE)) %>% 
-  mutate(word_lemma = str_replace_all(word_lemma, "nigger", "n-word"))
-```
-
-
-```{r create_plot}
-#Create a top ten list for the plotting data
-absalom_word_frequency <- absalom_race_stats %>% 
-    group_by(race_word) %>% 
-    count(word_lemma, sort = TRUE) %>%
-    top_n(10) %>%
-    mutate(word_lemma = reorder(word_lemma, n))
-```
-
-
-```{r message=TRUE, results='markup', fig.cap="Note: The chart displays the most frequent words based on word stem.<br> This prevents counting <i>father</i> and <i>father's</i> separately."}
-
-#Use ploty_ly library to create a bar chart
-
-absalom_word_frequency_plot <- plot_ly(
-  absalom_word_frequency,
-  x = ~ word_lemma,
-  y = ~ n,
-  type = "bar",
-  color = ~ race_word,
-  opacity=.9,
-  colors= faulkner_colorway,
-   hovertemplate=paste('Count: %{y}<extra></extra>')
-  )
-
-absalom_word_frequency_plot <- absalom_word_frequency_plot %>%
-  layout(
-    font = plot_font,
-    title = "Ten Most Frequent Word by Non-Race and Race Words",
-    xaxis = list(title = "Word Stem"),
-    yaxis = list(title = "Number of Words"),
-    legend = list(title = list(text = '<b>Racial Word</b>')),
-    paper_bgcolor = faulkner_paperbackground,
-    plot_bgcolor = faulkner_plotcolor,
-     margin = m
-      )
+- **Part 4: Text**  
 
 
 
 
 
-div(absalom_word_frequency_plot, align = "center")
+  The *DY* database provides insight into what characters are where and at what time. Using this database, it is possible to reconstruct the language surrounding people, places, and times.^[All of the data was generated in the R programming language using the `tidyverse` suite of packages for the calculations and the `plotly` library for the graphics. The full repository is available at https://github.com/joostburgers/absalom_sentiment_analysis Due to copyright issues the repository does not include the *Absalom, Absalom!* text file used for data analysis. The text file used for text analysis was the 2011 Vintage Edition [@faulkner2011], which corresponds with the 1990 edition we used for *DY*]
 
 
+## Part 1: Characters
+
+One of the common descriptions of *Absalom, Absalom!* is that it is not a whodunit, but rather a whydoneit. The reader is afforded the basic facts of the case early on in the narrative: Henry Sutpen shoots his sister's fiance, Charles Bon, on the day of their wedding. The remainder of the narrative is dedicated to unspooling the various lines of inquiry into why Henry was motivated to shoot Charles Bon. The answer is as integral to the Sutpen family story as it is a synecdoche of the larger history of slavery in America and the way enslavement and its concomitant legal apartheid regime structured social relations. In many respects then, *Absalom, Absalom!* is, at bottom, a character study. Faulkner sketches out a few basic details about the Sutpen family, and leaves it to the various narrators to infer cause and effect. 
+
+To understand all of these various social relations, it is useful to think through not only the individual characters, but the larger demography of the text. Digital Yoknapatawpha is particularly useful in this regard. Not only is it possible to pull up the biographies of each individual character, it is also possible to "slice" and "drill-down" into the data to answer to render a more detailed portrait of the various characters in the text in relation to one another. 
 
 
-tags$h6(HTML("<i>Figure 1:</i> The chart displays the most frequent words based on word stem. This prevents counting 'father' and 'father's' separately."), style =fig_caption)
-tags$br()
+```{r general_overview}
+unique_characters <- absalom_events_short %>%
+  distinct(CharacterName)
+
+
+peripheral_characters <- absalom_events_short %>%
+  distinct(CharacterName, .keep_all = TRUE) %>%
+  count(Rank) %>%
+  mutate(percent = n / sum(n))
+
+
+Judith_events <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>%
+  filter(CharacterName == "Judith Sutpen")
+
+Judith_unique_all <- absalom_events_short %>%
+  semi_join(Judith_events, by = "EventID") %>%
+  filter(PresentMentioned == "Present") %>%
+  distinct(CharacterName, .keep_all = TRUE) %>%
+  filter(CharacterName != "Judith Sutpen")
+
+Judith_unique <- Judith_unique_all %>%
+  filter(Rank %in% c("Peripheral", "Minor")) %>%
+  distinct(CharacterName)
 
 
 ```
 
-What is immediately noticeable is that the n-word is the most frequent racial term. It exceeds the word "negro" by 46 counts. It occurs about a third as infrequently as the word Henry (one of the main character's) and twice as infrequently as the racially ambiguous Charles Bon. Importantly, the occurrences of the individual names of characters is not the same as the number of times they actually occur in the text. After all, the pronouns "he" or "she" could equally well denote a character, but that is not shown here.
+Although much of the text is heavily focused on the Sutpen family, its word is actually peopled by `r nrow(unique_characters)` unique characters. The overwhelming majority of these (`r percent(peripheral_characters$percent[2]+peripheral_characters$percent[3])`) are peripheral or minor characters. While the abundance of minor characters in *Absalom, Absalom!* comports with novels more generally, it is important reminder that while the Sutpen's may be secluded they are not isolated from the larger world. Indeed, Judith is probably the most sheltered of the Sutpen's, she is seen very infrequently in town, and beyond this 12 mile journey never strays from the home. Still, over the course of the novel she appears in events with `r nrow(Judith_unique_all)` characters, `r nrow(Judith_unique)` of whom are minor or peripheral characters, such as Colonel Sartoris, Theophilus McCaslin, and the unnamed Men in Sartoris and Sutpen's Regiment. Mr. Compson's description of her as a "Country Girl Dirt Farmer" is therefore not entirely accurate. Beyond this rather trivial discrepancy, it speaks to the fact that Judith is not immune from social opprobrium, even if she is the daughter of the area's wealthiest planters and lives at some remove from town.
 
-### Collocations
+The source of Judith's social opprobrium is, of course, her potential marriage to Charles Bon, which Thomas fears and Henry prevents. To understand the unique source of anxiety surrounding it is important to underscore some of the basic demographics of the real Lafayette and the fictional Yoknapatawpha. In his thorough historical account of Lafayette county, Don Harrison Doyle shows that the ratio of Black (40%) and White (60%) identified people in the county was relatively stable throughout the counties history. In his own maps of Yoknapatawpha Faulkner actually flips this ratio and claims that there are 6,298 Whites and 9313 "Negroes." 
 
-Collocation is the process of determining which words appear together. This is done by creating n-grams, where "n" is the number of words that might match in a sequence. By determining the n-gram of particular words, we can get a better sense of the context. For example, in her research of British Newspapers, Dawn Archer has shown that the most common bigram (n-gram of two) for Muslim is "Muslim terrorist" [@Archer2016]. Certainly, this strong association between these two words indicates how Muslim's are represented in the British media. In similar fashion, we get a better sense of how Faulkner is using racial language by looking at the words immediately before and after them.
+```{r black_white_ratios}
+
+all_characters <- dy_events_short %>%
+  distinct(CharacterName) %>%
+  nrow()
+
+black_white_all <- dy_events_short %>%
+  # filter(SourceTextCode!="AA") %>%
+  distinct(CharacterName, .keep_all = TRUE) %>%
+  count(Race) %>%
+  mutate(percent = n / sum(n))
+
+black_white_pre <- dy_events_short %>%
+  #filter(SourceTextCode!="AA") %>%
+  filter(Era %in% c("Antebellum (1831-1860)", "Pre-Removal (-1830)")) %>%
+  distinct(CharacterName, .keep_all = TRUE) %>%
+  count(Race) %>%
+  mutate(percent = n / sum(n))
+```
+
+```{r count_char}
+char_count_AA <- absalom_events_short %>%
+  distinct(CharacterName, Race) %>%
+  count(Race)  %>%
+  mutate(percent = n / sum(n))
+              
+```
+
+
+He does not mirror this in his fiction though. If we look at all `r comma(all_characters)` characters, there are significantly more White characters, `r comma(black_white_all$n[10])` (`r percent(black_white_all$percent[10])`) than there are Black characters `r comma(black_white_all$n[2])` (`r percent(black_white_all$percent[2])`). In the context of *Absalom, Absalom!*, this ratio changes a bit for those events that pre-date the Civil War. Here there are relatively more Native American (`r percent(black_white_pre$percent[3])`) and Black (`r percent(black_white_pre$percent[2])`) characters, and therefore proportionally fewer White characters (`r percent(black_white_pre$percent[9])`). Thus, even though much of Faulkner's work explores race, it does so from a White perspective. There is little room for characters who are not white, and even less room for characters like Sutpen's first wife, Charles Bon, and Clytemnestra who have Black and White ancestry. They only constitute `r percent(black_white_all$percent[6])` of Yoknapatawpha's larger social world and `r percent(char_count_AA$percent[4])` in *Absalom, Absalom!*. All of which is to say that as far as demographics go, there are really only three types of characters Black, White, and to some extent Native Americans, everyone else is an exception to this rule. 
+
+
+```{r weight_count}
+weight_count <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>%
+  distinct(EventID, Race, event_words) %>%
+  group_by(Race) %>%
+  summarize(word_total = sum(event_words)) %>%
+  mutate(percent = word_total / sum(word_total))
+```
+
+This picture changes quite radically, however, when character presence is taken into consideration. Using the event data, it is possible to calculate how often a character is present and for how long. This is quite a different way to look at character data. After all, if someone is a demographically unique character this may not necessarily indicate that the character is unimportant to the plot. For example, there is only one Extra Terrestrial character in the movie *E.T.*, but that character nonetheless gets a lot of "screen time." By that same token, we can calculate the "screen time" for each different race group in *Absalom, Absalom!*. Quite revealing is the fact that even though they are a demographic minority characters with heterogeneous ancestry are present in `r percent(weight_count$percent[3])` of the text and are thereby the second most present characters after White characters (`r percent(weight_count$percent[5])`). One way to read this predominance of these characters is Faulkner's attempt to trouble the color-line. By collapsing the ostensibly natural boundary between "Black" and "White", Faulkner exposes the very constructedness of those boundaries. Charles Bon is able to win the affections of Judith and Henry by passing as white, and only when his true origins are exposed does he suddenly become a threat. Likewise, his son with the unnamed "Octoroon" mistress, Charles Etienne Saint-Valery Bon, also crosses the color line with a woman pejoratively described as "blank". It would appear that Faulker is exposing how the color line operates. 
 
 ```{r}
-
-#Create a bigram of the Absalom DF
-absalom_bigrams <- absalom_df %>%
-  unnest_tokens(bigram, text, token = "ngrams", n = 2)
-
-#This function first separates the bigram into two words, lemmatizes each, tags the racial words, then removes all non-racial words. 
-
-race_bigrams <- absalom_bigrams %>%
-  separate(bigram, c("word1", "word2"), sep = " ") %>%
-  mutate(word_lemma1 = textstem::lemmatize_words(word1)) %>%
-  mutate(word_lemma1 = str_remove_all(word_lemma1, "'s")) %>%
-  mutate(word_lemma2 = textstem::lemmatize_words(word2)) %>%
-  mutate(word_lemma2 = str_remove_all(word_lemma2, "'s")) %>%
-  left_join(race_words, by = c("word_lemma1" = "word_lemma")) %>%
-  left_join(race_words, by = c("word_lemma2" = "word_lemma"))  %>%
-  mutate(race_word = ifelse(race_word.x == TRUE |
-                              race_word.y == TRUE, TRUE,
-                            ifelse(NA))) %>%
-  filter(race_word == TRUE) %>%
-  mutate(bigram = paste(word_lemma1, word_lemma2)) %>%
-  select (-race_word.x,-race_word.y)
-
-#This function filters all the stop words out of the bigrams
-
-bigrams_filtered <- race_bigrams %>%
-  filter(!word1 %in% stop_words$word) %>%
-  filter(!word2 %in% stop_words$word)
-
-# new bigram counts:
-bigram_counts <- bigrams_filtered %>%
-  count(bigram, sort = TRUE) %>%
-  mutate(bigram = str_replace_all(bigram, "nigger", "n-word")) %>% 
-  mutate(bigram = reorder(bigram, n)) %>% 
-  top_n(15)
-```
-
-
-```{r bigram_chart, fig.cap="Note: This plot shows the most common cooccurrence of racial language in Absalom, Absalom!"}
-
-bigram_plot <- plot_ly(bigram_counts,
-  x = ~n,
-  y = ~bigram,
-  type = "bar",
-  orientation = 'h',
-  opacity =.9,
-    hovertemplate=paste('Count: %{x}<extra></extra>')
-  )
-      
-     bigram_plot <-  bigram_plot %>% 
-        layout(title = "Fifteen Most Frequent Race Bigrams",
-         xaxis = list(title = "Number of Bigrams"),
-         yaxis = list(title = "Bigrams"),
-         colorway=faulkner_colorway,
-         paper_bgcolor = faulkner_paperbackground,
-    plot_bgcolor = faulkner_plotcolor,
-     margin = m,
-    font=plot_font
-     )
-
-div(bigram_plot,align='center')
-
-
-tags$h6(HTML("<i>Figure 2:</i> This plot shows the most common cooccurrence of racial language in <i>Absalom, Absalom!</i>"), style =fig_caption)
-tags$br()
-
-```
-
-
-The phrase that stands out the most is one that Rosa Coldfield uses early on "wild niggers" (4). It becomes a leitmotif for much of the text and the phrase will be repeated throughout. Yet, who repeats it and how it is repeated will change.
-
-
-```{r read_wild_use}
-wild_use <- read_csv("wild_use.csv")
-```
-
-
-```{r plot_wild_use, fig.cap="Note: The above chart shows the respective use of the phrases 'Wild Nigger' and 'Wild Negro'. It was created by manually searching for the terms in the text and recovering the speaker."}
-wild_plot <- plot_ly(
-  wild_use,
-  x = ~ Speaker,
-  y = ~ Wild_Nigger,
-  name = 'Wild N-word',
-  type = "bar",
-  opacity = .9,
-  hovertemplate = paste('Count: %{y}<extra></extra>')
-)
-wild_plot <- wild_plot %>%
-  add_trace(y = ~ Wild_Negro, name = 'Wild Negro')
-
-wild_plot <-
-  wild_plot %>% layout(colorway=faulkner_colorway,
-    title = "Use of 'Wild N-word' and 'Wild Negro'<br> by different speakers in <i>Absalom, Absalom!</i>",
-    xaxis = list(title = "Speaker"),
-    yaxis = list(title = "Count"),
-    legend= list(
-                 title=list(text="<b>Racial Word</b>"),
-                itemsizing='constant'),
-    paper_bgcolor = faulkner_paperbackground,
-    plot_bgcolor = faulkner_plotcolor,
-    margin = list(l = 50, r = 50, b = 50, t = 100, pad = 4),
-    font = plot_font
-  )
-
-div(wild_plot, align='center')
-
-tags$h6(HTML("<i>Figure 3:</i> The above chart shows the respective use of the phrases 'Wild Nigger' and 'Wild Negro'. It was created by manually searching for the terms in the text and recovering the speaker."), style =fig_caption)
-tags$br()
-
-```
-
-In their use of either "wild niggers" or "wild negro," Quentin and Rosa Coldfield share an inverse relationship. This is curious because it is Rosa who first uses the phrase when referring to the demonic Sutpen arriving in Yoknapatawpha:
-
->Out of quiet thunderclap he would abrupt (man-horse-demon) upon a scene peaceful and decorous as a schoolprize water color, faint sulphur-reek still in hair clothes and beard, with grouped behind him his band of wild niggers like beasts half tamed to walk upright like men, in attitudes wild and reposed, and manacled among them the French architect with his air grim, haggard, and taller-ran. 
-
-This initial instance of the phrase uttered by Rosa is carried forward throughout the text. Interestingly, Quentin takes this singular note, and makes it a central resonance in his subsequent composition. What's more, Rosa's initial association between enslavement and wildness is another echo that reverberates. This, despite the fact, that she says it only once. The first hearing of the words provides an overture for all other versions.
-
-
-### Distribution of racial language
-
-We can also look at the word frequency data sequentially by casting it across the chapters. This indicates the frequency of a particular word in each chapter. It may be that some racial words are used in one part of the book and not in others. This gives some indication as to its value in the narrative.   
-
-
-```{r bubble_chart}
-#Get the five most frequent words and group their use by chapter.
-absalom_word_antijoin <- absalom_race_stats %>%
-  filter(race_word == TRUE) %>%
-  count(word_lemma, sort = TRUE) %>%
-  top_n(5)
-
-absalom_race_bubble <- absalom_race_stats %>%
-  right_join(absalom_word_antijoin) %>%
-  group_by(chapter) %>%
-  count(word_lemma) %>%
-  group_by(chapter) %>%
-  mutate(n = reorder(n, word_lemma)) %>%
-  mutate(word_lemma = str_to_title(word_lemma)) %>%
-  mutate(y = 6 - row_number()) %>%
-  mutate(n = as.integer(as.character(n)))
-
-```
-
-
-```{r buble_chart_plot}
-
-
-ylabels <- absalom_race_bubble %>%
-  ungroup() %>%
-  distinct(word_lemma) 
-
-fig_bubble <-
-  plot_ly(
-    absalom_race_bubble,
-    x = ~ chapter,
-    y = ~ y,
-    name=~word_lemma,
-    color=~word_lemma,
-    colors = faulkner_colorway[1:5],
-    type = 'scatter',
-    mode = 'markers',
-    opacity= .8,
-    size = ~n,
-    sizes = c(min(absalom_race_bubble$n), max(absalom_race_bubble$n)),
-    hoverinfo='text',
-    text= ~paste('Count:', n),
-      marker = list(
-        sizemode='diameter',
-                  opacity = 0.8
-            )
-  )
-
-fig_bubble <- fig_bubble %>%
-  layout(
-    title = "Use of Top 5 Racial words by Chapter <i>Absalom, Absalom!</i>",
-    xaxis = list(title = "Chapter",
-                 showgrid = FALSE,
-                 tickvals = ~chapter),
-    yaxis = list(title = "",
-                 showgrid = FALSE,
-                 tickmode='array',
-                 tickvals=c(5,4,3,2,1),
-                 ticktext=ylabels$word_lemma),
-    legend= list(
-                 title=list(text="<b>Racial Word</b>"),
-                itemsizing='constant'),
-    paper_bgcolor = faulkner_paperbackground,
-    plot_bgcolor = faulkner_plotcolor,
-    margin = m,
-    font = plot_font
-    )
-
-
-div(fig_bubble, align='center')
-
-
-tags$h6(HTML("<i>Figure 4:</i> The above bubble chart shows the frequency of racial word use by chapter. Immediately noticeable is that the overwhelming majority of the use of the n-word appear in chapter 7."), style =fig_caption)
-
-tags$br()
-
-
-```
-  
-Chapter 7 is particularly racially charged. While the text's various narrators (Rosa, Mr. Compson, Quentin, Shreve) predominate in certain chapters, it would be a mistake to attribute particular words to particular characters based on this raw data. We may recall that chapter 7 is a nested narrative in which we are told the story of Thomas Sutpen as he related it to General Compson, who told it to Mr. Compson, who told it to Quentin, who is telling it to Shreve. There are so many narrative frames that it is very difficult to determine whose language this is. What is apparent is that the chapter in which most of Sutpen's life is revealed is steeped in pejorative racist language. To be sure, in all the other chapters the word "negro" or "black" is used more frequently to describe African Americans. 
-
-## Part 2: Sentiment Analysis and Racial Language
-
-Sentiment analysis is a field of CL that tries to establish the emotional valence of a segment of text. It does so through sentiment libraries. These are words that have been hand coded to indicate broadly defined emotions like: joy, sadness, surprise, or, more generically, positive and negative. In general, sentiment libraries are used for analyzing social media or large data sets where the narrative data tends to be less complex and operates at scale. Thus, while the sentiment dictionary might not match each sentiment exactly, in the aggregate the predominant emotion rises to the top.   
-
-For literary works, sentiment analysis is far more speculative and merits quite some caution. Without a specially trained dictionary for a specific corpus, sentiment analysis can reveal certain patterns around words, but it is unclear what the margin of error might be. There are, so to speak, unknown unknowns. This is particularly true of Faulkner who uses many words that are emotionally charged, but might not make their way into a sentiment library. This is to say nothing of Faulkner's habit of using words in their negated form to indicate an emotion. What is, for example, the emotion attached to a word like "unamaze"? Any results that sentiment analysis generates should therefore be seen as a prompt into further inquiry and not a final result.
-
-### Sentiment Analysis Across a Text
-
-One of the most basic ways to think through sentiment are positive and negative sentiments across a text. The basic procedure is to tag each positive and negative sentiment in a text and then tabulate these chunks by some logical unit, be it a sentence, paragraph, or chapter. This will give you the total sentiment of that particular unit. Since, we are interested in the emotion surrounding racial words, it makes the most sense to set the unit boundary at the sentence level. This produces a very granular chart, but for *Absalom, Absalom!* this granularity is very revealing.
-
-```{r text_sentiment, cache=TRUE}
-#Sentiment analysis across the text
-race_sentences <- absalom_race_stats %>%
-  filter(race_word == TRUE) %>%
-  distinct()
-
-
-absalom_sentiment <- absalom_race_stats %>%
-  inner_join(get_sentiments("bing")) %>%
-  group_by(sentence_number) %>%
-  count(sentence_number, sentiment) %>%
-  spread(sentiment, n, fill = 0) %>%
-  mutate(sentiment = positive - negative)
-
-absalom_sentiment_race <- absalom_sentiment %>%
-  left_join(race_sentences, by = "sentence_number") %>%
-  select(-chapter,-word,-word_lemma)  %>%
-  mutate(race_word = replace_na(race_word, FALSE)) %>%
-  distinct() %>%
-  pivot_wider(names_from = race_word,
-              values_from = sentiment,
-              values_fill = 0) %>% 
-  rename(Regular = 4, Race = 5)
-```
-
-```{r sentiment_average}
-#Get average sentiment by word type
-
-sentiment_regular_average <- absalom_sentiment_race %>%
-  ungroup() %>%
-  filter(Regular!=0) %>% 
-  summarise(Regular = mean(Regular))
-
-sentiment_race_average <- absalom_sentiment_race %>%
-  ungroup() %>%
-  filter(Race!=0) %>% 
-  summarise(Race = mean(Race))
-```
-
-
-```{r sentiment_plot}
-text_sentiment_plot <- plot_ly(
-  absalom_sentiment_race,
-  x = ~ sentence_number,
-  y = ~ Regular,
-  name = 'Non-race',
-  type = "bar",
-  opacity = .9,
-  hovertemplate = paste('Sentiment: %{y}<extra></extra>')
-)
-text_sentiment_plot <- text_sentiment_plot %>%
-  add_trace(y = ~ Race, name = 'Race')
-
-text_sentiment_plot <-
-  text_sentiment_plot %>% layout(
-    title = "Sentiment Surrounding Racial and Non-racial Words in <i>Absalom, Absalom</i>",
-    xaxis = list(title = "Sentence Number"),
-    yaxis = list(title = "Sentiment Count"),
-    legend = list(title = list(text= "<b>Word Type</b>")),
-    colorway = faulkner_colorway,
-    paper_bgcolor = faulkner_paperbackground,
-    plot_bgcolor = faulkner_plotcolor,
-    margin = m,
-    font = plot_font
-  )
-
-div(text_sentiment_plot, align = 'center')
-
-tags$h6(
-  HTML(
-    "<i>Figure 5:</i> The line chart shows the positive and negative of sentences. Whenever a sentence had a racial word in it, it was coded as orange."
-  ),
-  style = fig_caption
-)
-tags$br()
-
-```
-
-The immediate things that stands out about this chart is just how negatively charged sentences in *Absalom, Absalom!* are. There are very few positive sentences in this text. The sentences that contain racial words are predominately negative. On average, they are significantly more negative (`r round(sentiment_race_average$Race[1],2)`) than non-racial words (`r round(sentiment_regular_average$Regular[1],2)`). In fact, the sentence with the most negative emotions attached to it is also racially charged. This is sentence 1421, which, at 969 words, is also one of the longest sentences in the text. If you do not know *Absalom, Absalom!* by sentence, and I hope you don't, this passage is about Sutpen's drunken parleys with Wash Jones and his dissolution after the Civil War more generally. The reason for the overabundance of negative emotions is both the sentence length and its grotesque content.
-
-
-## Part 3: Character Word Analysis
-
-Understanding when a certain word is used and in what emotional context does not necessarily indicate who is using it. There is currently no way to determine who is speaking in *Absalom, Absalom!* This is a two-fold issue. Practically, there is no way to match the speaker with the racial terms, because the data is not available at that level of granularity. More philosophically, we may also wonder if anyone's language is truly their own in the text. This is a community that has been shaped by the same story for generations. The cadence, register, and tone all inform particular leitmotifs that occur and reoccur throughout the narrative. Indeed, one of the interesting phenomena that CL reveals is just how often certain turns of phrase are repeated, re-worked, and re-contextualized. The singularity of the speaker is unsettled by the multiplicity of the spoken.
-
-That being said, it is possible to investigate the proximity of racial words relative to characters. The *Digital Yoknapatawpha* database breaks down a text into events, which are, in turn, composed of locations and characters. By cross-referencing the words with the events, we can get some notion of what words are being used around what characters.^[This re-composition process is quite technical and the full process is documented here: [*Absalom, Absalom!* Text Processing Supplement](absalom_text_processing_supplement.html).]
-
-
-
-```{r count_race_words}
-#Once the sentences have been matched, the full sentences is unnested, the words lemmatized, and inner_joined with the race words. These are then grouped by EventID and counted and pivot wider on each race word.
-
-absalom_race_words <- absalom_event_sentences %>%
-  unnest_tokens(word, event_sentence)  %>%
-  mutate(word_lemma = textstem::lemmatize_words(word)) %>%
-  mutate(word_lemma = str_remove_all(word_lemma, "'s")) %>%
-  inner_join(race_words) %>%
-  mutate(word_lemma = str_replace_all(word_lemma, "nigger", "n_word")) %>%   group_by(EventID, word_lemma)  %>%
-  count(word_lemma) %>%
-  pivot_wider(names_from = word_lemma,
-              values_from = n,
-              values_fill = 0)
-```
-
-```{r read_all_absalom_events}
-absalom_all_events <- read_csv("absalom_all_events_2021_4_30.csv")
-```
-
-```{r clean_up_absalom_events}
-#The full table is long and hard to work with. 
-absalom_events_short <- absalom_all_events %>%
-  select(3, 9, 21:27, 50, 52:54)
-```
-
-```{r add_racial_events}
-#Join the race events to all of the events and drop events that don't include racial events. 
-absalom_race_events <- absalom_events_short %>%
-  inner_join(absalom_race_words)
-```
-
-
-```{r get_race_character}
-#Create count of character occurrence, useful for sorting and proportionality
-character_occurrence <-  absalom_events_short %>%
-  count(CharacterName, name = "char_count")
-
-absalom_race_character <- absalom_race_events %>%
-  group_by(CharacterName) %>%
-  summarise(across(black:miscegenation, ~ sum(.))) %>%
-  left_join(character_occurrence) %>%
-  arrange(desc(char_count)) 
-                          
-#Note: In a previous iteration of the code, I tested whether there was a difference between character present and character mentioned. Other than the usual proportion of present and mentioned differences this did not lead ot an interesting result. 
-```
-
-
-### Top Race Words and Characters
-
-While we could count all of the words associated with a character, this is not a relevant statistic. The words that make the most sense are the five most frequent race words discussed in Figure 1. These are: blood, black, negro, n-word, and white. As each character necessarily occurs with each word at a different frequency, the top five characters were selected by the number of appearances in the total number of the events.  
-
-```{r race_char_chart}
-absalom_race_n <- absalom_race_character %>%
-  top_n(5) %>%
-  select(1:3, 5:6, 11)
-
-fig_race_bar <-
-  plot_ly(
-    absalom_race_n,
-    x = ~ CharacterName,
-    y = ~ black,
-    type = 'bar',
-    name = 'Black',
-    hovertemplate = paste(
-      'Character: %{x}',
-      '<br>',
-      'Word: Black',
-      '<extra></extra>',
-      '<br>',
-      'Count: %{y}'
-    )
-  )
-fig_race_bar <-
-  fig_race_bar %>% add_trace(
-    y = ~ blood,
-    name = 'Blood',
-    hovertemplate = paste(
-      'Character: %{x}',
-      '<br>',
-      'Word: Blood',
-      '<extra></extra>',
-      '<br>',
-      'Count: %{y}'
-    )
-  )
-fig_race_bar <-
-  fig_race_bar %>% add_trace(
-    y = ~ negro,
-    name = 'Negro',
-    hovertemplate = paste(
-      'Character: %{x}',
-      '<br>',
-      'Word: Negro',
-      '<extra></extra>',
-      '<br>',
-      'Count: %{y}'
-    )
-  )
-fig_race_bar <-
-  fig_race_bar %>% add_trace(
-    y = ~ n_word,
-    name = 'N-word',
-    hovertemplate = paste(
-      'Character: %{x}',
-      '<br>',
-      'Word: N-word',
-      '<extra></extra>',
-      '<br>',
-      'Count: %{y}'
-    )
-  )
-fig_race_bar <-
-  fig_race_bar %>% add_trace(
-    y = ~ white,
-    name = 'White',
-    hovertemplate = paste(
-      'Character: %{x}',
-      '<br>',
-      'Word: White',
-      '<extra></extra>',
-      '<br>',
-      'Count: %{y}'
-    )
-  )
-
-fig_race_bar <- fig_race_bar %>%
-  layout(
-    title = "Frequency of Racial Words in Events with Specific Characters",
-    yaxis = list(title = 'Count'),
-    xaxis = list(title = 'Character'),
-       legend= list(
-                 title=list(text="<b>Racial Word</b>"),
-                itemsizing='constant'),
-    barmode = 'group',
-    colorway = faulkner_colorway,
-    margin = m,
-    font = plot_font
-  )
-
-
-div(fig_race_bar, align='center')
-tags$h6(HTML("<i>Figure 6:</i> Frequency of character appearance in events with race words."), style =fig_caption)
-tags$br()
-```
-
-
-```{r char_count_sutpen}
-Sutpen_occurrence <- character_occurrence %>% filter(CharacterName=="Thomas Sutpen") %>% select(2)
-```
-
-
-The resulting chart is quite revealing. Among most of the characters, the ratio of the word negro vs. the n-word is relatively even. The most obvious difference is Thomas Sutpen. In events where is he present or mentioned the n-word occurs `r absalom_race_n$n_word[1]` times. Part of the reason for this is that Thomas Sutpen occurs in the most events throughout the text, `r Sutpen_occurrence$char_count[1]` to be exact. Consequently, it makes sense that he has a higher chance of occurring in those events in which there is a particular racial word. 
-
-```{r}
-n_word_frequency <-  absalom_word_frequency %>% 
-                      filter(word_lemma=="n-word")
-```
-
-In order to get a better view into how often a racial word is used in the same event as a character, we need to normalize the data by the number of times the word occurs. This way we can understand, proportionally, how often a character is in an event when a particular word occurs. We know from the previous chart that the n-word occurs `r n_word_frequency$n[1]` times. Dividing the number of occurrences for each character by this number produces the percentage chart below. 
-
-```{r percentage_n_word}
-
-n_word_character <- absalom_race_events %>% 
+total_present_length <- absalom_events_short %>% 
+                        filter(PresentMentioned == "Present") %>% 
+                        distinct(EventID, .keep_all = TRUE) %>% 
+                        summarise(total_words = sum(event_words))
+
+character_appearances <- absalom_events_short %>% 
+                           filter(PresentMentioned == "Present") %>%
+                          #distinct(CharacterName, .keep_all = TRUE) %>%
                           group_by(CharacterName) %>% 
-                           summarise(across(n_word, ~sum(.)/n_word_frequency$n)) %>% 
-                          top_n(10) %>% 
-                           mutate(CharacterName = reorder(CharacterName, desc(n_word))) 
-
-#Get percentage of Sutpen related to N-word
-Sutpen_n_word_percent <- n_word_character %>% filter(CharacterName=="Thomas Sutpen") 
-```
-
-
-```{r fig_percentage_nword}
-fig_n_word_character <- plot_ly(
-  n_word_character,
-  x = ~ n_word,
-  y = ~ CharacterName,
-  type = "bar",
-  orientation = 'h',
-  opacity=.9,
-  
-   hovertemplate=paste('Percentage: %{x}<extra></extra>')
-  )
-
-fig_n_word_character <- fig_n_word_character %>%
-  layout(
-    title = list(text = "Ten Most Frequent Characters in <br> Events when the N-word is Used"),
-    xaxis = list(title = "Percentage of N-word Usage", tickformat = ',.0%'),
-    yaxis = list(title = ""),
-    paper_bgcolor = faulkner_paperbackground,
-    plot_bgcolor = faulkner_plotcolor,
-    colorway = faulkner_colorway,
-    margin = list(l = 50, r = 50, b = 50, t = 100, pad = 4),
-    font = plot_font
-  )
-
-div(fig_n_word_character, align = "center")
-tags$h6(HTML("<i>Figure 7:</i> The chart displays the character occurrence relative to the number of times the n-word appears"), style = fig_caption)
-tags$br()
+                          summarize(word_total = sum(event_words)) %>% 
+                          mutate(percent = word_total / total_present_length$total_words[1]) %>% 
+                          filter(CharacterName %in% c("Clytemnestra", "Charles Bon", "Charles Etienne Saint-Valery Bon", "Thomas Sutpen")) %>% 
+                          arrange(CharacterName)
+                          
 
 ```
 
-The chart reveals, quite dramatically, that Thomas Sutpen is, in some, way part of the event `r round((Sutpen_n_word_percent$n_word[1])*100,0)`% of the times that the n-word occurs. While it is not clear that he is using the word, it is also clear that he is the character with whom the racial epithet is most associated. Indeed, in one event it occurs 16 times. This is when Sutpen is barred from entering the front door of the plantation by the enslaved butler (187). It is this primal incident that shapes so much of Sutpen's consciousness going forward. Linguistically, it becomes the gravitational center that draws in the worst racial language American literature has to offer. At the moment that he becomes aware of his class difference, he resorts to racial antagonism.
+A less generous perspective might be that Faulkner is not so much concerned with destabilizing the color-line, but rather what racial segregation means for Whiteness. That is, if he were truly concerned with how the color-line affected the white and black communities, Charles Etienne's journey would be more pronounced. As it stands, he only appears in `r percent(character_appearances$percent[2])` of events, while Clytemnestra appears in slightly more (`r percent(character_appearances$percent[3])`). This is in contrast to Charles Bon who receives far more attention to both combined (`r percent(character_appearances$percent[1])`). The racial anxiety runs decidedly one way, men with possible Black blood passing as White. Clytie is not a threat and Charles Ettiene is more of a curiosity. 
+What is more, all the characters are overshadowed by Thomas Sutpen (`r percent(character_appearances$percent[4])`). 
 
-### Time and Racial Language
+Sutpen's domineering presences redirects the racial question back to him. That is, why did his grand design fail. While the source of his folly can be traced back to a fundamental misunderstanding regarding racial cues: he does not recognize his first wife as part Black. There is a way in which the text makes an subtle and uncomfortable argument that part of the issue is that Sutpen does not embody the proper type of Whiteness. He is of low breeding and therefore can never hope to permanently establish a Plantation and record his name among the fine families of Yoknapatawpha: Sartoris, De Spain, Compson. His breeding is too low and his ambitions too grand for the county. WHiteness is as much a class issue as it is an understanding of race. 
 
-The use of racial language is also time bound. Certain words are more prominent during certain periods than others. The *DY* data also includes speculative dates for each event. These  dates consist of both an earliest possible start date and latest possible end date. Needless to say, establishing Faulkner's chronology is not an exact science and the dates are best seen as an approximate measure. Nevertheless, they do give a general indication around what time the events take place.
 
-```{r race_by_date}
-absalom_race_date <- absalom_race_events %>%
-                          distinct(EventID,.keep_all=TRUE) %>%
-                          mutate(StartDate = as.numeric(paste(str_sub(StartDate, 1,3),0,sep = ""))) %>% 
-                          group_by(StartDate) %>% 
-                           summarise(across(black:white, ~sum(.))) %>% 
-                            select(StartDate, black, blood, negro, n_word, white)
-                           
+
+
+
+
+With each narrator the social kaleidoscope changes and a new pattern is revealed. The new pattern likely says more about the narrator than it does about the actual "truth" of the matter, such as it is. 
+
+
+### Character Count Table
+
+
+
+```{r}
+#fig <- plot_ly(char_count, labels = ~Race, values = ~n, type = 'pie')
+#fig
+```
+
+
+
+```{r plot_weight_count}
+fig <- plot_ly(weight_count, labels = ~Race, values = ~word_total, type = 'pie')
+fig
 
 ```
 
-```{r race_date_plot}
-fig_race_date <- plot_ly(
-  absalom_race_date,
-  x =  ~ StartDate,
-  y =  ~ black,
-  name = "Black",
-  type = 'scatter',
-  mode = 'lines+markers',
-  opacity=.4,
-  hovertemplate = paste(
-    'Decade: %{x}s',
-    '<br>',
-    'Word: Black',
-    '<extra></extra>',
-    '<br>',
-    'Count: %{y}'
-  )
-)
-fig_race_date <-
-  fig_race_date %>% add_trace(
-    y =  ~ negro,
-    name = "Negro",
-    type = 'scatter',
-    mode = 'lines+markers',
-    hovertemplate = paste(
-      'Decade: %{x}s',
-      '<br>',
-      'Word: Negro',
-      '<extra></extra>',
-      '<br>',
-      'Count: %{y}'
-    )
-    
-  )
-fig_race_date <-
-  fig_race_date %>% add_trace(
-    y =  ~ n_word,
-    name = "N-word",
-    type = 'scatter',
-    mode = 'lines+markers',
-    opacity = .9,
-    hovertemplate = paste(
-      'Decade: %{x}s',
-      '<br>',
-      'Word: Nigger',
-      '<extra></extra>',
-      '<br>',
-      'Count: %{y}'
-    )
-  )
-fig_race_date <- fig_race_date %>%
-  layout(
-    title = "Frequency of Race Words over Time",
-    xaxis = list(title = "Date by Decade"),
-    yaxis = list(title = "Count of Word"),
-    legend= list(
-                 title=list(text="<b>Racial Word</b>")
-               ),
-    paper_bgcolor = faulkner_paperbackground,
-    plot_bgcolor = faulkner_plotcolor,
-    colorway = faulkner_colorway,
-    margin = m,
-    font = plot_font
-    
-  )
 
-div(fig_race_date, align = "center")
-tags$h6(HTML("<i>Figure 8:</i> Timeline of when each major racial word is used. To highlight the trajectory of the n-word, the opacity of the other two words has been turned down a bit."), style =fig_caption)
-tags$br()
+### Character Pie Chart by Race
+
+
+```{r mixed_race_characters}
+
+weight_count_mx_race <- absalom_events_short %>% 
+                filter(Race == "MixedBlackWhite") %>% 
+               distinct(EventID, CharacterName, event_words) %>% 
+                group_by(CharacterName) %>% 
+                  summarize(word_total = sum(event_words)) %>% 
+                  top_n(3)
 ```
 
-What is immediately visible is that the n-word is the most used word in the 1830s and 1860s. These are two great chapters in the Sutpen saga: the establishment of a racial enslavement regime and its dissolution during and after the Civil War. During Reconstruction, the words Black and Negro are used more frequently, albeit only a very few number of times. Interestingly, the lines bifurcate from 1900 to 1910. This is because the year 1909 is grouped with 1900 and not 1910. Likely what is visible is the difference in the usage of the n-word by Rosa Coldfield in 1909 and Shreve and Quentin in 1910. 
+```{r plot_mixed_race_characters}
+fig <- plot_ly(weight_count_mx_race, x = ~CharacterName, y = ~word_total, type = 'bar')
+fig
 
+```
+```{r all_characters}
 
-### Mapping Racial Words
+weight_count_all_char <- absalom_events_short %>% 
+                #filter(Race == "MixedBlackWhite") %>% 
+               distinct(EventID, CharacterName, event_words) %>% 
+                group_by(CharacterName) %>% 
+                  summarize(word_total = sum(event_words)) %>% 
+                  top_n(10)
+```
 
-Because the *DY* database has mapped the approximate location of the different events in Yoknapatawpha it is also possible to view this information spatially as it plays out across the narrative. Any number of data points can be plotted, but as this leads to map crowding, only those words directly related to African Americans were used. The different layers can be enabled and disabled by clicking on the legend. 
-
-```{r absalom_race_map}
-absalom_race_map <- absalom_race_events %>%
-  distinct(EventID, .keep_all = TRUE) %>%
-  group_by(LocationTitle, X, new_y) %>%
-  summarise(across(black:white, ~ sum(.))) %>%
-  select(LocationTitle, X, new_y, black, negro, n_word) %>%
-    pivot_longer(4:6, names_to = "race_words") %>% 
-  mutate(race_words = str_to_title(race_words)) %>% 
-  mutate(race_words = str_replace_all(race_words,"N_word","N-word")) %>% 
-  filter(value > 0) %>%
-  ungroup() %>%
-  #The underlying map has a white space of 632 pixels. This function accounts for the removal of that white space by shifting everything left. 
-  mutate(X = X - 632) %>%
-  arrange(desc(value))
+```{r plot_mixed_race_characters2}
+fig <- plot_ly(weight_count_all_char, x = ~CharacterName, y = ~word_total, type = 'bar')
+fig
 
 ```
 
-```{r out.width="768px",  out.height="605px"}
-image_file <- "https://raw.githubusercontent.com/joostburgers/absalom_sentiment_analysis/master/images/dy_base_layer_4_2.png"
 
-fig_race_map <-
-  plot_ly(
-    absalom_race_map,
-    x = ~ X,
-    y = ~ new_y,
-    name=~race_words,
-    color=~race_words,
-    colors = faulkner_colorway[c(1,3:4)],
-    type = 'scatter',
-    mode = 'markers',
-    size = ~value,
-    sizes = c(5, max(absalom_race_map$value)*1.7),
-      hoverinfo='text',
-    text= ~paste('Count:', value,'<br>',LocationTitle),
-      marker = list(
-        sizemode='diameter',
-                  opacity = .4,
-                  line = list(width = 1, color = 'white')
-            )
-  )
-fig_race_map <- fig_race_map %>%
-  layout(
-    title = "Locations of Racial Words in <i>Absalom, Absalom!</i>",
-    xaxis = list(
-      title = "",
-      visible = FALSE,
-      fixedrange = TRUE,
-      range = c(0, 2008)
-    ),
-    yaxis = list(
-      title = "",
-      visible = FALSE,
-      fixedrange = TRUE,
-      range = c(-1660, 0)
-    ),
-    margin = m,
-    font = plot_font,
-    legend = list(
-      title = list(text = "<b>Racial Word</b>"),
-      itemsizing = 'constant'
-    ),
-    
-    autosize = F,
-      width = 768,
-      height = 605,
-    
-    
-    images = list(
-      list(
-        source =  image_file,
-        xref = "x",
-        yref = "y",
-        x = 0,
-        y = -40,
-        sizex = 2008,
-        sizey = 1660,
-        #  sizing = "stretch",
-        opacity = 0.8,
-        layer = "below"
-      )
-      )
-  )
+```{r narrator_break_up}
 
-fig_race_map
-tags$h6(HTML("<i>Figure 9:</i> Map of where each racial word appears in the text by location."), style =fig_caption)
-tags$br()
+narrators <- absalom_events_short %>% 
+              distinct(EventID, narrator, event_words) %>% 
+              separate_rows(narrator, sep=",") %>% 
+              group_by(EventID, event_words) %>% 
+              arrange(EventID,narrator) %>%
+              
+              summarize(narrator = str_c(narrator, collapse = ",")) %>% 
+              mutate(narrator = ifelse(str_count(narrator, ",")>0, "Multiple-Sources", narrator)) %>% 
+                group_by(narrator) %>% 
+                  summarize(word_total = sum(event_words)) %>% 
+                  mutate(narrator = ifelse(word_total<1910, "Other", narrator)) %>% 
+  mutate(narrator = str_trim(narrator))
+              
 ```
 
-The map confirms for a third time that much of the most vociferous racial language is related to Sutpen's origin story in Tidewater, Virginia. This is not a dramatic reveal. Scholars have known that this was one of the key incidents of the text. What the linguistic analysis reveals is just how much Faulkner concentrated all of his racial epithets in this one relatively small slice of text. This word density suggests how deeply this one incident shaped Sutpen. In the grand scheme of things, this slight rebuff angers Sutpen so much that it initiates a cascade of choices that perpetuate, but also complicate America's racial hierarchy. 
 
 
-## Conclusion
+```{r}
+fig <- plot_ly(narrators, labels = ~narrator, values = ~word_total, type = 'pie')
+fig
 
-The linguistic analysis of Faulkner's use of racial language in *Absalom, Absalom!* is quite striking. It demonstrates that he does not use the n-word casually and indiscriminately. Instead, it serves a very specific purpose as a dramatic and thematic marker. It frames the speaker, the spoken to, and narrator who is re-speaking a communal narrative. By localizing the usage of the n-word predominately in Sutpen's origin story, superficially the language is "contained" within a particular person situated in a specific time and place. It is a story that is locked away "over there" and "in the past." Of course, in Faulkner the past is never locked away. The use of the n-word spreads throughout the text and infects everyone who re-tells the story. Even if the speakers don't repeat the word, they are implicated in the violence that brought it to life as one of the most problematic words in the English language. Moreover, the use of the n-word in Sutpen's origin story serves as a strategic misdirection: his highly charged racial language allows the various speakers to ignore the racial violence that is at the foundation of their own social standing. More bluntly, by casting Sutpen as a virulent racist, the narrator's absolve themselves of their own racism.
+```
+
+```{r}
+narrators_single <- absalom_events_short %>% 
+              distinct(EventID, narrator, event_words) %>% 
+              separate_rows(narrator, sep=",") %>% 
+              group_by(EventID, event_words) %>% 
+              arrange(EventID,narrator) %>%
+              add_count(EventID, name = "event_narrators") %>% 
+              mutate(event_words = event_words/event_narrators) %>% 
+              group_by(narrator) %>% 
+               mutate(narrator = str_trim(narrator)) %>% 
+              summarize(word_total = sum(event_words)) %>% 
+                mutate(word_total = as.integer(word_total)) %>% 
+              mutate(narrator = ifelse(word_total<3675, "Other", narrator))
+
+
+
+```
+
+```{r}
+fig <- plot_ly(narrators_single, labels = ~narrator, values = ~word_total, type = 'pie')
+fig
+```
+
