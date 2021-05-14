@@ -358,110 +358,80 @@ Using this chronology it is possible to create a plot structure chart of the tex
 The top line that gradually rises from left to right represents the narrative present. These are the various moments Quentin engages in conversation with Rosa, his father, and Shreve. The green tendrils that sink down are the various narrators telling a different part of the narrative. No matter how frenetic and halting this may appear, there are a number of jumps back and forward, the overall arc is that each narrative moves back towards the present. In this sense, the past is constantly percolating up and rippling the placid waters of the present. 
 The process of historical recovery is not happenstance. It is set in motion by Miss Rosa's desire to tell the story to Quentin, who according to his father...[close enough quote]. Quite quickly into her narrative it becomes clear that the story is not her own and is as much a public memory as a private memory. Each narrator contributes something new and delves deeper into the past. This is visible around Chapter 7 when major details of Sutpen's origin are revealed. The plot points drop all the way down to the x axis indicating that these are the earliest in the narrative. 
 
-By the end it would appear that the full history is dredged up. Nothing could be farther from the truth. Each individual narrator has his or her own reasons for recovering the past. For Rosa it is a way to exact vengeance on Sutpen's name, Mr. Compson tends to speak on behalf of the town, for Quentin it becomes a way to negotiate his own identity as a Southerner, and for Shreve it is as much anthropological as entertainment. Each narrator, each historian has different motivations, and his or her history version goes through different meditations. The facts of the case, such as they are remain elusive till the end. There are no fewer than 
+By the end it would appear that the full history is dredged up. Nothing could be farther from the truth. Each individual narrator has his or her own reasons for recovering the past. For Rosa it is a way to exact vengeance on Sutpen's name, Mr. Compson tends to speak on behalf of the town [check this], for Quentin it becomes a way to negotiate his own identity as a Southerner, and for Shreve it is as much anthropological as entertainment. Each narrator, each historian has different motivations, and his or her history version goes through different meditations. 
 
-
-With each narrator the social kaleidoscope changes and a new pattern is revealed. The new pattern likely says more about the narrator than it does about the actual "truth" of the matter, such as it is. 
-
-
-### Character Count Table
-
-
-
-```{r}
-#fig <- plot_ly(char_count, labels = ~Race, values = ~n, type = 'pie')
-#fig
+```{r narrators_distinct}
+narrators_distinct <- absalom_events_short %>% 
+                      separate_rows(narrator, sep=",") %>% 
+                      distinct(narrator)  %>% 
+                        nrow()
 ```
 
 
-
-```{r plot_weight_count}
-fig <- plot_ly(weight_count, labels = ~Race, values = ~word_total, type = 'pie')
-fig
-
-```
-
-
-### Character Pie Chart by Race
-
-
-```{r mixed_race_characters}
-
-weight_count_mx_race <- absalom_events_short %>% 
-                filter(Race == "MixedBlackWhite") %>% 
-               distinct(EventID, CharacterName, event_words) %>% 
-                group_by(CharacterName) %>% 
-                  summarize(word_total = sum(event_words)) %>% 
-                  top_n(3)
-```
-
-```{r plot_mixed_race_characters}
-fig <- plot_ly(weight_count_mx_race, x = ~CharacterName, y = ~word_total, type = 'bar')
-fig
-
-```
-```{r all_characters}
-
-weight_count_all_char <- absalom_events_short %>% 
-                #filter(Race == "MixedBlackWhite") %>% 
-               distinct(EventID, CharacterName, event_words) %>% 
-                group_by(CharacterName) %>% 
-                  summarize(word_total = sum(event_words)) %>% 
-                  top_n(10)
-```
-
-```{r plot_mixed_race_characters2}
-fig <- plot_ly(weight_count_all_char, x = ~CharacterName, y = ~word_total, type = 'bar')
-fig
-
-```
+The facts of the case, such as they are, remain elusive till the end. There are no fewer than `r narrators_distinct` unique sources of information such as major narrators like Rosa and Mr. Compson, but also artifacts such as Bon's letter, and Town gossip that appears to come from nowhere but shapes the perceptions of each character. 
 
 
 ```{r narrator_break_up}
-
-narrators <- absalom_events_short %>% 
-              distinct(EventID, narrator, event_words) %>% 
-              separate_rows(narrator, sep=",") %>% 
-              group_by(EventID, event_words) %>% 
-              arrange(EventID,narrator) %>%
-              
-              summarize(narrator = str_c(narrator, collapse = ",")) %>% 
-              mutate(narrator = ifelse(str_count(narrator, ",")>0, "Multiple-Sources", narrator)) %>% 
-                group_by(narrator) %>% 
-                  summarize(word_total = sum(event_words)) %>% 
-                  mutate(narrator = ifelse(word_total<1910, "Other", narrator)) %>% 
-  mutate(narrator = str_trim(narrator))
-              
+narrators <- absalom_events_short %>%
+  distinct(EventID, narrator, event_words) %>%
+  separate_rows(narrator, sep = ",") %>%
+  group_by(EventID, event_words) %>%
+  arrange(EventID, narrator) %>%
+  summarize(narrator = str_c(narrator, collapse = ",")) %>%
+  mutate(narrator = ifelse(str_count(narrator, ",") > 0, "Multiple-Sources", narrator)) %>%
+  group_by(narrator) %>%
+  summarize(word_total = sum(event_words)) %>%
+  mutate(narrator = ifelse(word_total < 1910, "Other", narrator)) %>%
+  mutate(narrator = str_trim(narrator)) %>% 
+  mutate(percent = word_total/sum(word_total))
 ```
 
+Unlike Faulkner's other texts though, these sources of information are not necessarily distinct from one another though. Famously, Shreve and Quentin's voice starts to merge towards the end of the novel. The focus on this section tends to overshadow the fact that much of the novel is being being reconstituted by its narrators through several different sources simultaneously. *Absalom, Absalom!* coding team lead Steve Railton has assidiously gone through and marked the source of information in each event. In quite a number of cases, the narrative is compiled through multiple-sources (`r percent(narrators$percent[11])`). There is no real way disaggregate these sources from one another. For example, in a passage where Quentin reconstitutes the narrative based on information he has been given by his father, grandfather, and his own imagination, it is very difficult to parse exactly what information is coming from whom. Moreover, such a move would work against the grain of the text, which is continuously reinforcing the communal nature of historical recollection. This caveat granted, it is possible to bluntly calculate how much each of the `r narrators_distinct` sources has a part in the narrative. Certainly, this is not an exact measure, but the relative differences are quite revealing. 
 
+
+```{r narrators_single}
+narrators_single <- absalom_events_short %>%
+  distinct(EventID, narrator, event_words) %>%
+  separate_rows(narrator, sep = ",") %>%
+  group_by(EventID, event_words) %>%
+  arrange(EventID, narrator) %>%
+  add_count(EventID, name = "event_narrators") %>%
+  mutate(event_words = event_words / event_narrators) %>%
+  group_by(narrator) %>%
+  mutate(narrator = str_trim(narrator)) %>%
+  summarize(word_total = sum(event_words)) %>%
+  mutate(word_total = as.integer(word_total)) %>%
+  #mutate(narrator = ifelse(word_total < 3675, "Other", narrator)) %>% 
+  mutate(percent = word_total/sum(word_total)) %>% 
+  arrange(narrator)
+```
+
+The most prominent source of information is Quentin's father (`r percent(narrators_single$percent[2])`). Meanwhile, Quentin contributes significantly less to the story: `r percent(narrators_single$percent[10])`. Whether this number is low or high is a matter of perspective. On the one hand, as he was first invited by Miss Rosa to listen to her narrative it makes sense that he would contribute little to a narrative that he presumably knows nothing about. On the other hand, the dual voice of Shreve and Quentin actually contributes roughly the same amount `r percent(narrators_single$percent[12])`. This basic fact raises far more questions than it answers. If the ostensible point of the book is to uncover the history of Sutpen, why does the main historian Quentin, ultimately cede the story to Shreve who fills in the gaps through flights of fancy? What does it say about the role of narration and historical research more generally if there is no central narrator who can be relied upon? Even though Mr. Compson tells a lot, he does not know some major details. For example, his father tells Quentin, but not him, about Sutpen's wife. It is a strange omission that is never accounted for. Nor is it clear when Quentin's grandfather would have told him this information. The unreliability of the narrators throws into question the carefully crafted assumptions about the social ambit and the spatial organization laid out earlier. How strong can these cases be if the evidence they are built upon is essentially quicksand? 
+
+
+## Part 4: Something in the air
+
+Looking at the narrative construction of the text leads to more dead-ends than answers. The connective tissue: language actually makes it worse. Part of what makes the language in this text confusing is simply its complex vocabulary. 
 
 ```{r}
-fig <- plot_ly(narrators, labels = ~narrator, values = ~word_total, type = 'pie')
-fig
-
+unique_words <- absalom_df %>% 
+                unnest_tokens(word,text) %>% 
+                distinct(word) %>% 
+                filter (word ==str_match(word, "[a-z]+")) %>%
+                nrow()
+                
 ```
 
-```{r}
-narrators_single <- absalom_events_short %>% 
-              distinct(EventID, narrator, event_words) %>% 
-              separate_rows(narrator, sep=",") %>% 
-              group_by(EventID, event_words) %>% 
-              arrange(EventID,narrator) %>%
-              add_count(EventID, name = "event_narrators") %>% 
-              mutate(event_words = event_words/event_narrators) %>% 
-              group_by(narrator) %>% 
-               mutate(narrator = str_trim(narrator)) %>% 
-              summarize(word_total = sum(event_words)) %>% 
-                mutate(word_total = as.integer(word_total)) %>% 
-              mutate(narrator = ifelse(word_total<3675, "Other", narrator))
+The text has an active vocabulary of around `r unique_words`. Compared to a tex like blank. This is much higher. Quite a number of these words are either neologisms like: unwived, unamazed, and untimorous, while others are are very uncommon such as catafalque, faience, and lagniappe. One would be excused from running to the dictionary more than once during this text. 
+
+Yet, for all its linguistic density, it is also a repetitious book. Words and phrases echo throughout the text and evoke the sense that one is rereading a particular passage. This effect is very much observable in a textual analysis. Computationally, it is possible to calculate how many phrases repeat over the course of the narrative. Such phrases are called n-grams where *n* indicates the number of words in the phrase. There are quite a number of phrases that repeat throughout the texts. Some are associated with one speaker, while others drift through the text so that the language becomes untraceable. For example, the exact phrase "the two of them" occurs 29 times. Again and again prases repeat.
 
 
-
+```{r narrative language}
+# absalom_ngram <- absalom_df %>% 
+#                 unnest_ngrams(word, text, n_min = 10, n = 20) %>% 
+#                 count(word) %>% 
+#                 filter(n>1)
 ```
 
-```{r}
-fig <- plot_ly(narrators_single, labels = ~narrator, values = ~word_total, type = 'pie')
-fig
-```
 
