@@ -1,0 +1,260 @@
+---
+title: "*Count of nword chapter7"
+author: "Johannes Burgers"
+output:
+  html_document:
+    theme: yeti
+    df_print: paged
+bibliography: "bibliography.bib"
+---
+
+
+```{r setup, include=FALSE, message = FALSE, warning=FALSE, error=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning=FALSE, error=FALSE, tidy='styler')
+```
+
+#### Load Libraries
+```{r load_packages}
+library(tidyverse)
+library(tidytext)
+library(stringi)
+library(scales)
+library(stringr)
+library(plotly)
+library(textstem)
+library(shiny)
+library(lubridate)
+library(htmlTable)
+```
+
+#### Load texts
+```{r load_text}
+#Read in the text
+absalom_df <- as.data.frame(read_file("absalom_cleaned_to_match_4_30_rev4.txt"))
+colnames(absalom_df) <- "text" 
+
+absalom_df <- absalom_df %>% 
+mutate(text = gsub("[‘’]", "'", text))
+```
+
+```{r _load_event_sentences}
+absalom_event_sentences <- read_csv("absalom_event_sentences_clean_2021_5_10.csv")
+
+#This file was created by recomposing the text based on the "First Words" column and matching the text segments with each event using a copy of the text. As this process is quite involved it has been branched out into a separate file: absalom_sentiment_text_processing. Full details on the process can be viewed there.
+
+```
+
+
+```{r absalom_event_word_count}
+event_length <- absalom_event_sentences %>%
+  mutate(event_words = str_count(event_sentence,  "\\S+")) %>%
+  select(EventID, begin_word, end_word, event_sentence, event_words)
+```
+
+
+```{r read_all_absalom_events}
+absalom_all_events <- read_csv("absalom_all_events_2021_5_11.csv")
+```
+
+```{r event_dates}
+aa_event_dates <- read_csv("absalom_event_dates_05_15.csv")
+
+aa_event_dates <- aa_event_dates %>% 
+                  mutate(StartDate=str_trim(StartDate)) %>% 
+                  mutate(EndDate= str_trim(EndDate)) %>% 
+                  select(EventID, StartDate, EndDate) %>% 
+                  drop_na()
+```
+
+
+```{r chapter_numbers}
+chapter_numbers <- read_csv("chapter_numbers.csv")
+
+```
+
+```{r clean_up_absalom_events}
+#The full table is long and hard to work with. 
+absalom_events_short <- absalom_all_events %>%
+  select(3:8,11, 13, 21:27, 50, 52:54) %>% 
+  mutate(narrator = str_extract(Summary, "(?<=(SOURCE)).+[^]</p>]")) %>% 
+  mutate(narrator = str_replace_all(narrator,":","")) %>% 
+  left_join(event_length, by="EventID") %>% 
+  left_join(chapter_numbers, by = "PageNumber") %>% 
+  left_join(aa_event_dates, by="EventID") %>% 
+  relocate(StartDate, .after = NarrativeStatus) %>% 
+  relocate(EndDate, .after= StartDate)
+```
+
+
+
+
+```{r read_all_DY_events}
+dy_events <- read_csv("full_database_2021_5_11.csv")
+
+```
+
+```{r clean_up_all_events}
+dy_events_short <- dy_events %>% 
+                    select(1:11, 21:27, 50, 52:54)
+
+
+```
+
+
+```{r load_race_words}
+#Read in the race words
+race_words <- read_csv("race_words.csv")
+```
+
+#### Load Chart Vars
+
+```{r load_color_scheme, echo=FALSE}
+#Page styling
+
+#This is where you create your own custom color palette for the traces.
+faulkner_colorway = c("#132C53","#F27A18","#ae0700","#79b473","#38726c","#76bed0","#6b2d5c","#448b2d","#e6d812")
+
+#This controls the background color for the entire chart. Probably best left white.
+faulkner_paperbackground = c('rgba(255,255,255,0)')
+
+#This controls the background for the plot. Probably best left white.
+faulkner_plotcolor = c('rgba(255,255,255,.3)')
+
+#Margin 
+
+m <- list(l = 50, r = 50, b = 50, t = 50, pad = 4)
+
+#Caption Style
+
+fig_caption <- "font-family: 'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif; font-weight: normal; font-size:90%"
+
+plot_font <- list(
+  family = "'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif",
+  size = 14,
+  color = '#363636')
+
+
+
+```
+
+
+
+
+
+
+```{r narrative language}
+# absalom_ngram <- absalom_df %>% 
+#                 unnest_ngrams(word, text, n_min = 10, n = 20) %>% 
+#                 count(word) %>% 
+#                 filter(n>1)
+```
+
+
+```{r}
+chapter7_events <- absalom_events_short %>% 
+                    filter(chapter ==7) %>% 
+                    distinct(EventID, .keep_all = TRUE) %>% 
+                    select(EventID, PageNumber,OrderWithinPage,StartDate,LocationTitle,event_sentence) %>% 
+                    mutate(nword_count = str_count(event_sentence, "nigger*")) %>% 
+                    mutate(year_location = paste(str_sub(StartDate, 1,4),LocationTitle)) %>% 
+                    group_by(PageNumber,year_location) %>% 
+                    summarise(total_count =sum(nword_count)) 
+
+
+```
+
+
+```{r}
+
+plot_chapter7 <-  plot_ly(chapter7_events,
+                          x = ~PageNumber,
+                          y = ~total_count,
+                          color= ~year_location)
+plot_chapter7
+```
+
+
+```{r}
+nword_chapter7 <- read_csv("use_nword_chapter7_5_16.csv")
+
+```
+
+```{r}
+shorter_nword_chapter7 <- nword_chapter7 %>% 
+                                        filter(n_word>0)
+
+
+
+plot_chapter7 <- plot_ly(shorter_nword_chapter7,
+                         y = ~n_word,
+                         x = ~page,
+                         color = ~event,
+                         type ='bar')
+
+plot_chapter7 <-  plot_chapter7 %>% 
+                          layout(
+                            xaxis = list(
+                              tickmode = 'array',
+                              tickvals = nword_chapter7$page,
+                              ticktext = nword_chapter7$event
+                            ),
+                            autosize = F,
+      width = 1024,
+      height = 500
+                          )
+
+plot_chapter7
+```
+
+```{r}
+plot_chapter7_event <- plot_ly(nword_chapter7,
+                         y = ~n_word,
+                         x = ~event,
+                         #color = ~event,
+                         type ='bar')
+
+plot_chapter7_event
+
+
+```
+
+
+
+```{r}
+nword_chapter7_consolidated <- read_csv("use_nword_chapter7_consolidated_5_16.csv")
+
+
+```
+
+```{r}
+shorter_nword_chapter7_consolidated <- nword_chapter7_consolidated %>% 
+                                        filter(n_word>0)
+
+single_label_chapter7 <- nword_chapter7_consolidated %>% 
+                          distinct(event,n_word, .keep_all = TRUE)
+
+plot_chapter7_consolidated <- plot_ly(shorter_nword_chapter7_consolidated,
+                         y = ~n_word,
+                         x = ~page,
+                        color = ~event,
+                         type ='bar'
+                            )
+
+plot_chapter7_consolidated <-  plot_chapter7_consolidated %>% 
+                          layout(
+                            xaxis = list(
+                              tickmode = 'array',
+                              tickvals = single_label_chapter7$page,
+                              ticktext = single_label_chapter7$event
+                            ),
+                            bargap=0,
+                            autosize = F,
+      width = 1440,
+      height = 500
+                          )
+
+
+plot_chapter7_consolidated
+
+```
+
