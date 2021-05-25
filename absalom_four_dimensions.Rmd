@@ -517,19 +517,18 @@ plot_absalom_chronology <- plot_ly(
 
 
 
-## Part 3: History as the Past
+## Part 3: Events: Maybe happen is never once
 
 One of the most challenging parts of *Absalom, Absalom* is certainly the narrative structure. Readers familiar with Faulkner's other works will recognize the experimentation with different perspectives, stream-of-consciousness narration, and the revision of basic plot points from *The Sound and the Fury*, *As I Lay Dying*, and *Light in August*. In some respects, *Absalom, Absalom!* represents the culmination of these experiments. At no other point in his career does Faulkner weave these elements together with such complexity. Not only is *Absalom, Absalom!* told through stream-of-consciousness narration through multiple perspectives that constantly switch without any clear signal to the reader. What is more, the different narrators insert or revise major plot points "into the telling as you might flick the joker out of a pack of fresh cards without being able to remember later whether you had removed the joker or not" (203). Disentangling the text is equal parts exasperating and exhilarating. 
 To complicate matters even more, the narrative is decidedly non-linear. Only `r percent(absalom_jump$percent[3])` of the events follow a sequential order, for the remainder the plot either jumps forward (`r percent(absalom_jump$percent[2])`) or backwards (`r percent(absalom_jump$percent[1])`) non-sequentially. At first blush, it appears that these jumps are random, but there is actually a deep structure to the text. Early readers have commented on the existence of this structure, but it was not until the assiduous work of Steve Railton in 2003 that it became possible to visualize this structure.^[unfortunately the visualization is no longer operational, but efforts are being made to revive it.] This data formed the foundation for the *DY* database, and helped in mapping out a chronology. 
 Using this chronology it is possible to create a plot structure chart of the text.^[I have written an extensive and rather technical piece on this here] In essence, we can conceive of the text of having two different orders: chronological order and page order. Chronological order is the order of events in which they occur on a timeline of the story, and page order is when they actually occur in the text. A more common distinction is between story and plot, where the story is the sequence of events as they happened, and the plot is the order in which they are told. On a plot structure chart events that happen later are higher on the y axis, while events that are earlier are lower. If the the story is told in the sequence of events as it occurs, it will rise in a 45 degree slope. For example, we do not learn of Sutpen's origins in Western Virginia until chapter seven. Chronologically this is an early event, but in the plot it is told much later.  This point will be low on the y-axis, but about three fourths of the way across on the x-axis. Generally, when events drop down the y axis this is a sign of a flashback. Conversely, a jump up is a flashforward. In *DY* the narrative structure of every Faulkner text can be accessed through the "Narrative Analysis" dashboard. The image below has been reproduced in black and white for this essay. It shows the narrative structure of the text, and how that information is conveyed to the reader: narrated through the external narrator, told by one of the characters, or conveyed through one of the other types of narration identified by *DY* remembered, hypothesized, narrated+consciousness. The later three were consolidated into one data series because their number was relatively low. The chart has also been annotated with major plot points.
 
 
-```{r}
+```{r plot_aa_bw}
 plot_aa_bw <- plot_ly(
   absalom_chronology_bw,
   x = ~ OrderWithinPage,
   y = ~ Narrated,
-  
   name = 'Narrated',
   type = 'scatter',
   mode = 'markers',
@@ -557,7 +556,6 @@ plot_aa_bw <- plot_ly(
     '<br>',
     absalom_chronology_bw$Summary,
     '<extra></extra>'
-    
   )
 )
 
@@ -576,8 +574,22 @@ plot_aa_bw <- plot_aa_bw %>% add_trace(
     ),
     color = "#D4D4D4",
     opacity = .6
+  ),
+  hovertemplate = paste(
+    'Page: %{x}',
+    '<br>',
+    'Narrative Status: Told',
+    '<br>',
+    'Chronological Order: %{y}',
+    '<br>',
+    'Start Date:',
+    absalom_chronology_bw$StartDate,
+    '<br>',
+    'Summary:',
+    '<br>',
+    absalom_chronology_bw$Summary,
+    '<extra></extra>'
   )
-  
 )
 
 plot_aa_bw <- plot_aa_bw %>% add_trace(
@@ -596,6 +608,21 @@ plot_aa_bw <- plot_aa_bw %>% add_trace(
     ),
     color = "#494848",
     opacity = .6
+  ),
+  hovertemplate = paste(
+    'Page: %{x}',
+    '<br>',
+    'Narrative Status: Remembered',
+    '<br>',
+    'Chronological Order: %{y}',
+    '<br>',
+    'Start Date:',
+    absalom_chronology_bw$StartDate,
+    '<br>',
+    'Summary:',
+    '<br>',
+    absalom_chronology_bw$Summary,
+    '<extra></extra>'
   )
   
 )
@@ -612,8 +639,22 @@ plot_aa_bw <- plot_aa_bw %>% add_trace(
     line = list(width = 1,
                 color = "#000000"),
     color = "#494848"
+  ),
+  hovertemplate = paste(
+    'Page: %{x}',
+    '<br>',
+    'Narrative Status: Hypothesized',
+    '<br>',
+    'Chronological Order: %{y}',
+    '<br>',
+    'Start Date:',
+    absalom_chronology_bw$StartDate,
+    '<br>',
+    'Summary:',
+    '<br>',
+    absalom_chronology_bw$Summary,
+    '<extra></extra>'
   )
-  
 )
 plot_aa_bw <- plot_aa_bw %>% add_trace(
   x = ~ OrderWithinPage,
@@ -627,8 +668,22 @@ plot_aa_bw <- plot_aa_bw %>% add_trace(
     symbol = "diamond",
     line = list(width = 1, color = "#000000"),
     color = "#494848"
+  ),
+  hovertemplate = paste(
+    'Page: %{x}',
+    '<br>',
+    'Narrative Status: Narrated+Consciousness',
+    '<br>',
+    'Chronological Order: %{y}',
+    '<br>',
+    'Start Date:',
+    absalom_chronology_bw$StartDate,
+    '<br>',
+    'Summary:',
+    '<br>',
+    absalom_chronology_bw$Summary,
+    '<extra></extra>'
   )
-  
 )
 
 chapters_single <- absalom_chronology %>%
@@ -637,17 +692,18 @@ chapters_single <- absalom_chronology %>%
 
 plot_aa_bw <-  plot_aa_bw %>%
   layout(
-    title = list(text = "Title for chart"),
+    title = list(text = "Plot Structure Chart: <i>Absalom, Absalom!</i>"),
     xaxis = list(
       tickmode = 'array',
       tickvals = chapters_single$OrderWithinPage,
       ticktext = chapters_single$chapter,
       gridwidth = 1.5,
       title = list(text = "Chapter")
+      
     ),
     yaxis = list(title = list(text = "Chronology"),
                  showgrid = FALSE),
-    autosize = F,
+    autosize = FALSE,
     width = 1024,
     height = 400
   )
@@ -682,8 +738,7 @@ plot_aa_bw <- plot_aa_bw %>%
     arrowsize = .5,
     ax = chronology_annotations_import_secondary$xoffset,
     ay = chronology_annotations_import_secondary$yoffset,
-    font = list(color = "rgba(255,255,255,0)"
-                  ),
+    font = list(color = "rgba(255,255,255,0)"),
     bgcolor = "rgba(255,255,255,0)",
     borderpad = 0,
     borderwidth = 0
@@ -695,10 +750,13 @@ div(plot_aa_bw)
 
 
 
-The top line that gradually rises from left to right represents the narrative present. These are the various moments Quentin engages in conversation with Rosa, his father, and Shreve. The green tendrils that sink down are the various narrators telling a different part of the narrative. No matter how frenetic and halting this may appear, there are a number of jumps back and forward, the overall arc is that each narrative moves back towards the present. In this sense, the past is constantly percolating up and rippling the placid waters of the present. 
-The process of historical recovery is not happenstance. It is set in motion by Miss Rosa's desire to tell the story to Quentin, who according to his father...[close enough quote]. Quite quickly into her narrative it becomes clear that the story is not her own and is as much a public memory as a private memory. Each narrator contributes something new and delves deeper into the past. This is visible around Chapter 7 when major details of Sutpen's origin are revealed. The plot points drop all the way down to the x axis indicating that these are the earliest in the narrative. 
+At first blush, the above chart can be a bit overwhelming; it is condensing a lot of data into a very small space. It is best understood by breaking it down into several components. First, the top line of squares that gradually rises from left to right represents the narrative present. These are the various moments Quentin engages in conversation with Rosa, his father, and Shreve. The narrative moments of each major narrator are also marked on this top line: Rosa, Mr. Compson, Quentin, Shreve, and finally Shreve and Quenting together. Below this top line are all the events that happened in the past. The gray dots that appear to "bubble" up are, in fact, the different versions of the events told by the different narrators. These initially seem frenetic and disorganized, but each actually makes an elongated "S" curve. Each narrator is filling out a lot of detail in the beginning of the narrative and the end, and skipping through the "middle" at a more rapid pace. Each curve is making its way towards the present. Some curves start farther down and others end higher up. The line markers indicate the chapters, and what becomes apparent is that each "S" is nestled within in chapter. Therefore the overal pattern of each chapter repeats itself. First, there is narration in the present, then the narrative drops down into the "deep" past and works its way towards the present. There might be some errant events that jump forward and therefore up on the y-axis, but these are essentially previews for events that will happen later. Essentially, the pattern is actually pretty regular overall. In this sense, all the chapters work together to tell the "entire" story of Sutpen. With a little imagination, one could slide the curves into each other to make one long curve of the events to put them all in the right order. To help understand what is going on at each point in the curve, certain major events have been annotated. This helps elucidate how Faulkner has stitched this together. In the beginning, Sutpen mysteriously appears in Chapter 1 and 2, but we do not get his story until Chapter 7, only after it is revealed that he dies at the end of Chapter 5. We do not really know why he dies until the end of Chapter 7. The story of Henry shooting Charles is told on page six, and again in chapters 4 and 5, but we do not get the final version until the end of Chapter 8. The the narrative gives us glimpses of the the past, but only provides their full context until much later. To add to the complexity of the history, it is told in multiple different ways through different narrators each part of the story ripples into the next and is always percolating up, puncturing the placid surface of the present. In this sense, history is a continuously undulating flow of events, as Quentin muses:
 
-By the end it would appear that the full history is dredged up. Nothing could be farther from the truth. Each individual narrator has his or her own reasons for recovering the past. For Rosa it is a way to exact vengeance on Sutpen's name, Mr. Compson tends to speak on behalf of the town [check this], for Quentin it becomes a way to negotiate his own identity as a Southerner, and for Shreve it is as much anthropological as entertainment. Each narrator, each historian has different motivations, and his or her history version goes through different meditations. 
+>Maybe happen is never once but like ripples maybe on water after the pebble sinks, the ripples moving on, spreading, the pool attached by a narrow umbilical water-cord to the next pool which the first pool feeds, has fed, did feed, let this second pool contain a different temperature of water, a different molecularity of having seen, felt, remembered, reflect in a different tone the infinite unchanging sky, it doesn’t matter: that pebble’s watery echo whose fall it did not even see moves across its surface too at the original ripple-space
+
+Following this metaphor, it is Rosa Coldfield who drops the first pebble in the water, so to speak. The basic complicating action of the plot is that Rosa wants to tell her story to Quentin, because, as his father explains, she holds the Compson family indirectly responsible for letting Sutpen get a foothold in Jefferson and thereby precipitating the dissolution of her own family before she was even realized it was happening. It is not long into the narrative though that it becomes apparent that the story is not her own and is as much a public memory as a private memory. At certain points, Quentin simply stops paying attention, because he knows this or that part of the story already. For all Quentin's initial insouciance the later events, the ones he lived through, are, without a doubt, a shock to him. 
+
+By the end it would appear that the full history is dredged up. Nothing could be farther from the truth. Each individual narrator has his or her own reasons for recovering the past.[maybe insert each narrator] 
 
 ```{r narrators_distinct}
 narrators_distinct <- absalom_events_short %>% 
@@ -708,7 +766,7 @@ narrators_distinct <- absalom_events_short %>%
 ```
 
 
-The facts of the case, such as they are, remain elusive till the end. There are no fewer than `r narrators_distinct` unique sources of information such as major narrators like Rosa and Mr. Compson, but also artifacts such as Bon's letter, and Town gossip that appears to come from nowhere but shapes the perceptions of each character. 
+Because of this, the facts of the case, such as they are, remain elusive till the end. It does not help that there is no one historical source of information. There are no fewer than `r narrators_distinct` unique sources of information such as major narrators like Rosa and Mr. Compson, but also artifacts such as Bon's letter, and town gossip that appears to come from nowhere but shapes the perceptions of each character. 
 
 
 ```{r narrator_break_up}
@@ -726,7 +784,7 @@ narrators <- absalom_events_short %>%
   mutate(percent = word_total/sum(word_total))
 ```
 
-Unlike Faulkner's other texts though, these sources of information are not necessarily distinct from one another though. Famously, Shreve and Quentin's voice starts to merge towards the end of the novel. The focus on this section tends to overshadow the fact that much of the novel is being being reconstituted by its narrators through several different sources simultaneously. *Absalom, Absalom!* coding team lead Steve Railton has assidiously gone through and marked the source of information in each event. In quite a number of cases, the narrative is compiled through multiple-sources (`r percent(narrators$percent[11])`). There is no real way disaggregate these sources from one another. For example, in a passage where Quentin reconstitutes the narrative based on information he has been given by his father, grandfather, and his own imagination, it is very difficult to parse exactly what information is coming from whom. Moreover, such a move would work against the grain of the text, which is continuously reinforcing the communal nature of historical recollection. This caveat granted, it is possible to bluntly calculate how much each of the `r narrators_distinct` sources has a part in the narrative. Certainly, this is not an exact measure, but the relative differences are quite revealing. 
+Unlike Faulkner's other texts though, these sources of information are not necessarily distinct from one another though. Famously, Shreve and Quentin's voice starts to merge towards the end of the novel. The focus on this section tends to overshadow the fact that much of the novel is being being reconstituted by its narrators through several different sources simultaneously. The *Absalom, Absalom!* coding team lead Steve Railton has marked the source of information in each event. In a sizeable number of cases, the narrative is compiled through multiple-sources (`r percent(narrators$percent[11])`). There is no real way disaggregate these sources from one another. For example, in a passage where Quentin reconstitutes the narrative based on information he has been given by his father, grandfather, and his own imagination, it is very difficult to parse exactly what information is coming from whom. Moreover, such a move would work against the grain of the text, which is continuously reinforcing the communal nature of historical recollection. This caveat granted, it is possible to bluntly calculate how much each of the `r narrators_distinct` sources has a part in the narrative. Certainly, this is not an exact measure, but the relative differences are quite revealing. 
 
 
 ```{r narrators_single}
