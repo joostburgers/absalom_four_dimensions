@@ -1,5 +1,5 @@
 ---
-title: "*Count of nword chapter7"
+title: "Count of nword chapter7"
 author: "Johannes Burgers"
 output:
   html_document:
@@ -129,8 +129,8 @@ m <- list(l = 50, r = 50, b = 50, t = 50, pad = 4)
 fig_caption <- "font-family: 'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif; font-weight: normal; font-size:90%"
 
 plot_font <- list(
-  family = "'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif",
-  size = 14,
+  family = "'Playfair Display','Helvetica Neue',Helvetica,Arial,sans-serif",
+  size = 15,
   color = '#363636')
 
 
@@ -223,11 +223,13 @@ plot_chapter7_event
 ```{r}
 nword_chapter7_consolidated <- read_csv("use_nword_chapter7_consolidated_5_16.csv")
 
+nword_chapter7_labels <- read_csv("use_nword_chapter7_consolidated_single_labels_5_18.csv", na=character())
 
 ```
 
 ```{r}
 shorter_nword_chapter7_consolidated <- nword_chapter7_consolidated %>% 
+                                        mutate(theme = ifelse(str_detect(event, "Wash")==TRUE, "1861 - 1869 Wash", event)) %>% 
                                         filter(n_word>0)
 
 single_label_chapter7 <- nword_chapter7_consolidated %>% 
@@ -236,21 +238,37 @@ single_label_chapter7 <- nword_chapter7_consolidated %>%
 plot_chapter7_consolidated <- plot_ly(shorter_nword_chapter7_consolidated,
                          y = ~n_word,
                          x = ~page,
-                        color = ~event,
-                         type ='bar'
+                        color = ~theme,
+                       colors=c("#132C53","#F27A18","#ae0700","#b4739a","#38726c","#e6d812","#448b2d"),
+                       opacity = .9,
+
+                         type ='bar',
+                          hoverinfo='text',
+                text= ~paste('Event: ', event,'<br>','Count: ',n_word)
                             )
 
 plot_chapter7_consolidated <-  plot_chapter7_consolidated %>% 
                           layout(
+                            title = "Use of N-word Across Chapter 7",
                             xaxis = list(
                               tickmode = 'array',
-                              tickvals = single_label_chapter7$page,
-                              ticktext = single_label_chapter7$event
-                            ),
+                              tickvals = nword_chapter7_labels$page,
+                              ticktext = nword_chapter7_labels$event,
+                              title = list(text = "Event"),
+                              fixedrange = TRUE,
+                              range = c(0, 55)
+                                ),
+                            yaxis = list(title = "Count"),
                             bargap=0,
                             autosize = F,
+                            
       width = 1440,
-      height = 500
+      height = 500,
+       paper_bgcolor = faulkner_paperbackground,
+    plot_bgcolor = faulkner_plotcolor,
+     margin = m,
+    font=plot_font
+      
                           )
 
 
