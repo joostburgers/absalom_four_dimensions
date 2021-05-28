@@ -1,0 +1,500 @@
+---
+title: "Supplemental Analysis"
+author: "Johannes Burgers"
+date: "5/27/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+left over data for doing ngram research. Not conclusive
+```{r}
+
+```
+
+```{r sound_fury_ngrams}
+sf_df <- as.data.frame(read_file("sound_and_the_fury_william_faulkner.txt"))
+colnames(sf_df) <- "text" 
+sf_df <- sf_df %>% 
+mutate(text = gsub("[‘’]", "'", text)) %>% 
+              unnest_tokens(text, text) %>%  
+              summarize(text = str_c(text, collapse = " "))
+
+# Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
+sf_ngram <- sf_df %>%
+  unnest_ngrams(word, text, n_min = 4, n = 16) %>%
+  count(word) %>%
+  filter(n > 1) %>%
+  mutate (ngram_length = str_count(word, "\\S+"))
+
+#create a helper file.
+# sf_short <- sf_ngram %>%
+#   select(word, ngram_length) %>%
+#   arrange(desc(ngram_length))
+
+
+
+#redupe <- sf_ngram %>%
+#           mutate(duplicate = str_detect(word, #sf_short$word))
+
+
+sf_deduped <-
+  #the map function iterates a function across the entire vector. In this case, search for each string in each string and keep track of the count.
+  map_df(
+    sf_ngram$word,
+    ~ str_count(sf_ngram$word, .x) %>%
+      sum  %>%
+      set_names(.x) %>%
+      enframe(name = "word", value = "count")
+  ) %>%
+  arrange(desc(count))
+
+#filter out any duplicates.
+sf_deduped_short <- sf_deduped %>%
+  filter (count == 1)
+
+#filter out the duplicated ngrams
+sf_ngrams_filtered <- sf_ngram %>%
+  inner_join(sf_deduped_short)
+
+#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue. 
+sf_ngrams_text_count <- sf_ngrams_filtered %>%
+  mutate(text_count =  str_count(sf_df$text, word))
+
+#Calculate text lengths.
+sf_length <- sf_df %>%
+  unnest_tokens(word, text) %>%
+  nrow()
+
+sf_ngrams_word_count <- sf_ngrams_text_count %>%
+  mutate(total_count = ngram_length * text_count) %>%           group_by(ngram_length) %>% 
+  summarise(total = sum(total_count)) %>%  
+  arrange(desc(ngram_length)) %>% 
+  mutate(cum_total = cumsum(total)) %>% 
+  mutate(percent = total / sf_length) %>% 
+    mutate(cum_percent = cum_total / sf_length)
+
+sf_ngrams_word_count <- sf_ngrams_word_count %>% 
+                                mutate(title = "sound_fury")   
+```
+
+```{r lay_dying_ngram}
+
+ail_df <- as.data.frame(read_file("as_I_lay_dying_william_faulkner.txt"))
+colnames(ail_df) <- "text" 
+ail_df <- ail_df %>% 
+mutate(text = gsub("[‘’]", "'", text)) %>% 
+              unnest_tokens(text, text) %>%  
+              summarize(text = str_c(text, collapse = " "))
+
+# Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
+ail_ngram <- ail_df %>%
+  unnest_ngrams(word, text, n_min = 4, n = 16) %>%
+  count(word) %>%
+  filter(n > 1) %>%
+  mutate (ngram_length = str_count(word, "\\S+"))
+
+#create a helper file.
+# ail_short <- ail_ngram %>%
+#   select(word, ngram_length) %>%
+#   arrange(desc(ngram_length))
+
+
+
+#redupe <- ail_ngram %>%
+#           mutate(duplicate = str_detect(word, #ail_short$word))
+
+
+ail_deduped <-
+  #the map function iterates a function across the entire vector. In this case, search for each string in each string and keep track of the count.
+  map_df(
+    ail_ngram$word,
+    ~ str_count(ail_ngram$word, .x) %>%
+      sum  %>%
+      set_names(.x) %>%
+      enframe(name = "word", value = "count")
+  ) %>%
+  arrange(desc(count))
+
+#filter out any duplicates.
+ail_deduped_short <- ail_deduped %>%
+  filter (count == 1)
+
+#filter out the duplicated ngrams
+ail_ngrams_filtered <- ail_ngram %>%
+  inner_join(ail_deduped_short)
+
+#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue. 
+ail_ngrams_text_count <- ail_ngrams_filtered %>%
+  mutate(text_count =  str_count(ail_df$text, word))
+
+#Calculate text lengths.
+ail_length <- ail_df %>%
+  unnest_tokens(word, text) %>%
+  nrow()
+
+ail_ngrams_word_count <- ail_ngrams_text_count %>%
+  mutate(total_count = ngram_length * text_count) %>%           group_by(ngram_length) %>% 
+  summarise(total = sum(total_count)) %>%  
+  arrange(desc(ngram_length)) %>% 
+  mutate(cum_total = cumsum(total)) %>% 
+  mutate(percent = total / ail_length) %>% 
+  mutate(cum_percent = cum_total / ail_length)
+
+ail_ngrams_word_count <- ail_ngrams_word_count %>% 
+                                mutate(title = "as_I_lay")   
+
+```
+
+```{r light_in_august_ngram}
+lia_df <- as.data.frame(read_file("light_in_august_william_faulkner.txt"))
+colnames(lia_df) <- "text" 
+lia_df <- lia_df %>% 
+mutate(text = gsub("[‘’]", "'", text)) %>% 
+              unnest_tokens(text, text) %>%  
+              summarize(text = str_c(text, collapse = " "))
+
+# Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
+lia_ngram <- lia_df %>%
+  unnest_ngrams(word, text, n_min = 4, n = 16) %>%
+  count(word) %>%
+  filter(n > 1) %>%
+  mutate (ngram_length = str_count(word, "\\S+"))
+
+#create a helper file.
+# lia_short <- lia_ngram %>%
+#   select(word, ngram_length) %>%
+#   arrange(desc(ngram_length))
+
+
+
+#redupe <- lia_ngram %>%
+#           mutate(duplicate = str_detect(word, #lia_short$word))
+
+
+lia_deduped <-
+  #the map function iterates a function across the entire vector. In this case, search for each string in each string and keep track of the count.
+  map_df(
+    lia_ngram$word,
+    ~ str_count(lia_ngram$word, .x) %>%
+      sum  %>%
+      set_names(.x) %>%
+      enframe(name = "word", value = "count")
+  ) %>%
+  arrange(desc(count))
+
+#filter out any duplicates.
+lia_deduped_short <- lia_deduped %>%
+  filter (count == 1)
+
+#filter out the duplicated ngrams
+lia_ngrams_filtered <- lia_ngram %>%
+  inner_join(lia_deduped_short)
+
+#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue. 
+lia_ngrams_text_count <- lia_ngrams_filtered %>%
+  mutate(text_count =  str_count(lia_df$text, word))
+
+#Calculate text lengths.
+lia_length <- lia_df %>%
+  unnest_tokens(word, text) %>%
+  nrow()
+
+lia_ngrams_word_count <- lia_ngrams_text_count %>%
+  mutate(total_count = ngram_length * text_count) %>%           group_by(ngram_length) %>% 
+  summarise(total = sum(total_count)) %>%  
+  arrange(desc(ngram_length)) %>% 
+  mutate(cum_total = cumsum(total)) %>% 
+  mutate(percent = total / lia_length) %>% 
+  mutate(cum_percent = cum_total / lia_length)
+lia_ngrams_word_count <- lia_ngrams_word_count %>% 
+                                mutate(title = "light_august")   
+
+```
+
+```{r}
+dickens_df <- as.data.frame(read_file("great_expectations_dickens.txt"))
+colnames(dickens_df) <- "text" 
+dickens_df <- dickens_df %>% 
+mutate(text = gsub("[‘’]", "'", text)) %>% 
+              unnest_tokens(text, text) %>%  
+              summarize(text = str_c(text, collapse = " "))
+
+# Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
+dickens_ngram <- dickens_df %>%
+  unnest_ngrams(word, text, n_min = 4, n = 16) %>%
+  count(word) %>%
+  filter(n > 1) %>%
+  mutate (ngram_length = str_count(word, "\\S+"))
+
+#create a helper file.
+# dickens_short <- dickens_ngram %>%
+#   select(word, ngram_length) %>%
+#   arrange(desc(ngram_length))
+
+
+
+#redupe <- dickens_ngram %>%
+#           mutate(duplicate = str_detect(word, #dickens_short$word))
+
+
+dickens_deduped <-
+  #the map function iterates a function across the entire vector. In this case, search for each string in each string and keep track of the count.
+  map_df(
+    dickens_ngram$word,
+    ~ str_count(dickens_ngram$word, .x) %>%
+      sum  %>%
+      set_names(.x) %>%
+      enframe(name = "word", value = "count")
+  ) %>%
+  arrange(desc(count))
+
+#filter out any duplicates.
+dickens_deduped_short <- dickens_deduped %>%
+  filter (count == 1)
+
+#filter out the duplicated ngrams
+dickens_ngrams_filtered <- dickens_ngram %>%
+  inner_join(dickens_deduped_short)
+
+#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue. 
+dickens_ngrams_text_count <- dickens_ngrams_filtered %>%
+  mutate(text_count =  str_count(dickens_df$text, word))
+
+#Calculate text lengths.
+dickens_length <- dickens_df %>%
+  unnest_tokens(word, text) %>%
+  nrow()
+
+dickens_ngrams_word_count <- dickens_ngrams_text_count %>%
+  mutate(total_count = ngram_length * text_count) %>%           group_by(ngram_length) %>% 
+  summarise(total = sum(total_count)) %>%  
+  arrange(desc(ngram_length)) %>% 
+  mutate(cum_total = cumsum(total)) %>% 
+  mutate(percent = total / dickens_length) %>% 
+  mutate(cum_percent = cum_total / dickens_length)
+
+dickens_ngrams_word_count <- dickens_ngrams_word_count %>% 
+                                mutate(title = "expectations")   
+
+
+```
+
+```{r melville_ngram}
+melville_df <- as.data.frame(read_file("moby_dick_herman_melville.txt"))
+colnames(melville_df) <- "text" 
+melville_df <- melville_df %>% 
+mutate(text = gsub("[‘’]", "'", text)) %>% 
+              unnest_tokens(text, text) %>%  
+              summarize(text = str_c(text, collapse = " "))
+
+# Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
+melville_ngram <- melville_df %>%
+  unnest_ngrams(word, text, n_min = 4, n = 16) %>%
+  count(word) %>%
+  filter(n > 1) %>%
+  mutate (ngram_length = str_count(word, "\\S+"))
+
+#create a helper file.
+# melville_short <- melville_ngram %>%
+#   select(word, ngram_length) %>%
+#   arrange(desc(ngram_length))
+
+
+
+#redupe <- melville_ngram %>%
+#           mutate(duplicate = str_detect(word, #melville_short$word))
+
+
+melville_deduped <-
+  #the map function iterates a function across the entire vector. In this case, search for each string in each string and keep track of the count.
+  map_df(
+    melville_ngram$word,
+    ~ str_count(melville_ngram$word, .x) %>%
+      sum  %>%
+      set_names(.x) %>%
+      enframe(name = "word", value = "count")
+  ) %>%
+  arrange(desc(count))
+
+#filter out any duplicates.
+melville_deduped_short <- melville_deduped %>%
+  filter (count == 1)
+
+#filter out the duplicated ngrams
+melville_ngrams_filtered <- melville_ngram %>%
+  inner_join(melville_deduped_short)
+
+#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue. 
+melville_ngrams_text_count <- melville_ngrams_filtered %>%
+  mutate(text_count =  str_count(melville_df$text, word))
+
+#Calculate text lengths.
+melville_length <- melville_df %>%
+  unnest_tokens(word, text) %>%
+  nrow()
+
+melville_ngrams_word_count <- melville_ngrams_text_count %>%
+  mutate(total_count = ngram_length * text_count) %>%           group_by(ngram_length) %>% 
+  summarise(total = sum(total_count)) %>%  
+  arrange(desc(ngram_length)) %>% 
+  mutate(cum_total = cumsum(total)) %>% 
+  mutate(percent = total / melville_length) %>% 
+   mutate(cum_percent = cum_total / melville_length)
+
+melville_ngrams_word_count <- melville_ngrams_word_count %>% 
+                                mutate(title = "dick")   
+
+```
+
+```{r}
+twain_df <- as.data.frame(read_file("huckleberry_finn_mark_twain.txt"))
+colnames(twain_df) <- "text" 
+twain_df <- twain_df %>% 
+mutate(text = gsub("[‘’]", "'", text)) %>% 
+              unnest_tokens(text, text) %>%  
+              summarize(text = str_c(text, collapse = " "))
+
+# Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
+twain_ngram <- twain_df %>%
+  unnest_ngrams(word, text, n_min = 4, n = 16) %>%
+  count(word) %>%
+  filter(n > 1) %>%
+  mutate (ngram_length = str_count(word, "\\S+"))
+
+#create a helper file.
+# twain_short <- twain_ngram %>%
+#   select(word, ngram_length) %>%
+#   arrange(desc(ngram_length))
+
+
+
+#redupe <- twain_ngram %>%
+#           mutate(duplicate = str_detect(word, #twain_short$word))
+
+
+twain_deduped <-
+  #the map function iterates a function across the entire vector. In this case, search for each string in each string and keep track of the count.
+  map_df(
+    twain_ngram$word,
+    ~ str_count(twain_ngram$word, .x) %>%
+      sum  %>%
+      set_names(.x) %>%
+      enframe(name = "word", value = "count")
+  ) %>%
+  arrange(desc(count))
+
+#filter out any duplicates.
+twain_deduped_short <- twain_deduped %>%
+  filter (count == 1)
+
+#filter out the duplicated ngrams
+twain_ngrams_filtered <- twain_ngram %>%
+  inner_join(twain_deduped_short)
+
+#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue. 
+twain_ngrams_text_count <- twain_ngrams_filtered %>%
+  mutate(text_count =  str_count(twain_df$text, word))
+
+#Calculate text lengths.
+twain_length <- twain_df %>%
+  unnest_tokens(word, text) %>%
+  nrow()
+
+twain_ngrams_word_count <- twain_ngrams_text_count %>%
+  mutate(total_count = ngram_length * text_count) %>%           group_by(ngram_length) %>% 
+  summarise(total = sum(total_count)) %>%  
+  arrange(desc(ngram_length)) %>% 
+  mutate(cum_total = cumsum(total)) %>% 
+  mutate(percent = total / twain_length) %>% 
+  mutate(cum_percent = cum_total / twain_length)
+
+
+twain_ngrams_word_count <- twain_ngrams_word_count %>% 
+                          mutate(title = "huckfinn")
+
+```
+
+```{r}
+all_totals <- twain_ngrams_word_count %>% 
+              bind_rows(melville_ngrams_word_count) %>% 
+              bind_rows(dickens_ngrams_word_count) %>% 
+              bind_rows(lia_ngrams_word_count) %>% 
+              bind_rows(ail_ngrams_word_count) %>% 
+              bind_rows(sf_ngrams_word_count) %>% 
+              bind_rows(ngrams_word_count) 
+
+all_totals <- all_totals %>% 
+              filter(ngram_length>6)
+              
+
+```
+
+```{r}
+
+word_echo_all <- plot_ly(
+                all_totals,
+                x = ~ngram_length,
+                y = ~total,
+                name =~title,
+                color = ~title,
+                type = 'scatter',
+                mode = 'line'
+)
+
+word_echo_all
+
+
+
+
+```
+
+```{r}
+library(tokenizers)
+
+absalom_txt <- as.data.frame(read_file("absalom_cleaned_to_match_4_30_rev4.txt"))
+colnames(absalom_txt) <- "text" 
+absalom_sentences <- absalom_txt %>% 
+  unnest_sentences(word, text) %>% 
+mutate (string_length = str_count(word, "\\S+")) 
+  summary(absalom_sentences$string_length)
+
+  absalom_parenthesis <- absalom_sentences %>% 
+            mutate(parentheses = gsub("[^\\(\\)]","",word)) %>% 
+    filter (str_length(parentheses)>0)
+
+summary(stri_length(stri_split_boundaries(txt, type = "sentence")[[1]]))
+ 
+```
+
+```{r}
+absalom_read <- as.data.frame(read_file("absalom_cleaned_to_match_4_30_rev4.txt"))
+colnames(absalom_read) <- "text" 
+absalom_binary_tree <- absalom_read %>%
+    unnest_regex(word, text,"[.?!]") %>%  
+  mutate (word = str_replace_all(word, "[-—]", " ")) %>% 
+mutate (string_length = str_count(word, "\\S+")) %>% 
+mutate (sentence_nr = row_number()) %>% 
+ mutate(parentheses = gsub("[^\\(\\)]","",word)) %>% 
+  mutate(pairs = str_count(parentheses, "\\(\\)")) %>% 
+  mutate(nesting = str_count(parentheses, "\\(\\("))
+  
+mutate(word = str_replace_all(word, " \\s*\\(","\\{"))
+
+
+#this was an attempt to make a tree graph. It got too complex to think about start points and end points. 
+absalom_sentences_tree <- absalom_sentences %>%
+    mutate(string_length = str_length(word)) %>%
+    mutate(begin = cumsum(string_length)) %>%
+    mutate(open_count = str_count(word, "\\(")) %>%
+    unnest_regex(middle_sentence, word, "\\(") %>%
+    mutate(middle_length = str_length(middle_sentence)) %>%
+    mutate(close_count = str_count(middle_sentence, "\\)")) %>%
+    mutate(start_sum = cumsum(middle_length)) %>% 
+    unnest_regex(close_sentence, middle_sentence, "\\)") %>% 
+    mutate(close_length = str_length(close_sentence)) 
+```
+

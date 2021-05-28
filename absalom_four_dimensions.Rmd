@@ -151,7 +151,9 @@ The following piece uses several techniques available to standard CL analysis, a
 
 [^1]: All of the data was generated in the R programming language using the `tidyverse` suite of packages for the calculations and the `plotly` library for the graphics. The full repository is available at <https://github.com/joostburgers/absalom_sentiment_analysis> Due to copyright issues the repository does not include the *Absalom, Absalom!* text file used for data analysis. The text file used for text analysis was the 2011 Vintage Edition [@faulkner2011], which corresponds with the 1990 edition we used for *DY*
 
-## Part 1: Characters: "money, a house, a plantation, slaves, a family --- incidentally of course, a wife"
+## Part 1: Characters
+
+### "money, a house, a plantation, slaves, a family --- incidentally of course, a wife"
 
 A common description of *Absalom, Absalom!* is that it is not a whodunit, but rather a why-done-it. Within the first several pages, the basic facts of the case are laid out: Henry Sutpen shoots his sister's fiance, Charles Bon, on the day of their wedding. The remainder of the narrative is dedicated to unspooling the various lines of inquiry into why Henry was motivated to shoot Bon. The answer is integral to the Sutpen family story, and serves as a synecdoche of the larger history of slavery in America. In many respects then, *Absalom, Absalom!* is a character study. The narrative opens with a few basic details about the Sutpen family, which are then unpacked and interpreted by the various narrators based on their own motivated reasoning.
 
@@ -359,7 +361,9 @@ old_age <- absalom_events_short %>%
 
 There is a third way to read the novel along the character axis. The multiple figurative and literal dead-ends can also be seen as the effect of the plantation system destroying the very social relations it is aiming to maintain. Of the `r total_deaths` characters who die in the novel, only `r deaths_AA$n[3]` (`r percent( deaths_AA$percent[3])`) die of old age - Ikkemotubbe and Rosa - the rest dies by murder (`r percent( deaths_AA$percent[2])`), suicide (`r percent( deaths_AA$percent[2])`), or disease (`r percent( deaths_AA$percent[1])`). The two characters who die relatively peacefully, Ikkemottube and Rosa, are rather poetic book-ends to Sutpen's tale of the destruction. The former is cheated out of his land and displaced, and the latter is cheated out of a marriage and lives as a recluse. The fates of the protagonists are much grimmer. Charles Bon is killed by his half-brother, Judith and Charles Etienne who both have transgressive desires across the color line and die of "yellow fever" a disease associated with racial otherness (CLOUGH 96), Clytemnestra starts the fire that kills both she and Henry - eternal physical and spiritual prisoners of Sutpen's Hundred. The only remainder of the Sutpen line is Jim Bond whose incoherent "howling" (300) is a garbled rejoinder to the social system that is rendered mute by its own hypocrisy. In the end, a system that only reproduces violence to uphold a rarefied elite plantocracy is unsustainable. To paraphrase Quentin's father, The entire Sutpen line, and the South more generally, "pays the price for having erected its economic edifice not on the rock of stern morality but on the shifting sands of opportunism and moral brigandage" (209).
 
-## Part 2 Locations: "the *Be Sutpen's Hundred* like the oldentime *Be Light*"
+## Part 2 Locations:
+
+### "the *Be Sutpen's Hundred* like the oldentime *Be Light*"
 
 ```{r sutpen_location}
 #Percentage by location and then the Sutpen place. All Sutpen place locations are consolidated into one.
@@ -465,7 +469,9 @@ absalom_status <- absalom_chronology %>%
   mutate(percent = total_words / sum(total_words))
 ```
 
-## Part 3: Events: "Maybe happen is never once"
+## Part 3: Events
+
+### "Maybe happen is never once"
 
 One of the most challenging parts of *Absalom, Absalom* is certainly the narrative structure. Readers familiar with Faulkner's other works will recognize the experimentation with different perspectives, stream-of-consciousness narration, and the continuous revision of basic plot points that were also featured in *The Sound and the Fury*, *As I Lay Dying*, and *Light in August*. In some respects, *Absalom, Absalom!* represents the culmination of these narrative innovations. At no other point in his career does Faulkner weave these elements together with such complexity. *Absalom, Absalom!* features multiple narrators whose stories all confluence in stream-of-consciousness narration that, at times, makes them indistinguishable. What is more, the different narrators continuously revise major plot points, and to borrow Mr. Compson's apt description, drop these "into the telling as you might flick the joker out of a pack of fresh cards without being able to remember later whether you had removed the joker or not" (203). Disentangling the text is therefore equal parts exasperating and exhilarating.
 
@@ -780,20 +786,95 @@ The most prominent source of information is Quentin's father (`r percent(narrato
 
 ### "it struck, word by word, the resonant strings of remembering"
 
-An analysis of characters, locations, and events keeps pulling the text in different directions. One thing that ties them all together is language. Each different entity in the text is woven together through language. Unfortunately, here too a search for answers only raises more questions. Contradictoraly, the language is both unique and repetitive.
+An analysis of characters, locations, and events pulls *Absalom, Absalom!* in different directions, none of which lead to a unified interpretation. One thing that ties them all together is language; each entity in the text is woven together through language. Indeed, a number of critics have taken this approach and pointed out that Faulkner's use of language in *Absalom, Absalom!* is blank, blank, blank. Stylistic analysis reveals something quite contradictory: the language is simultaneously unique and unremarkable.
 
-```{r}
+```{r sentence_length}
+#parentheticals..
+absalom_txt <-
+  as.data.frame(read_file("absalom_cleaned_to_match_4_30_rev4.txt"))
+colnames(absalom_txt) <- "text"
+
+absalom_clean <- absalom_txt %>% 
+mutate(text = gsub("[,\\!\\?\\.](?=[^’‘]*’[\\s—-])"," ",text, perl=TRUE))
+
+#[,\!\?\.](?=[^’‘]*’[\s—-]) This regex worked, but cannot be implemented
+
+absalom_sentences <- absalom_clean %>%
+  unnest_regex(word, text, "[.?!]") %>%
+  mutate (string_length = str_count(word, "\\S+"))  
+
+
+absalom_sentences_mean <-  absalom_sentences %>%
+  summarize(mean_length = mean(absalom_sentences$string_length))
+
+absalom_sentences_long <- absalom_sentences %>%
+  filter(string_length > 99) %>%
+  nrow()
+```
+
+Perhaps the most noted stylistic feature of *Absalom, Absalom!* is the length of the sentences. In fact, according to the 1983 *Guinness Book of World Records* it holds the dubious record of containing the longest sentence in the English language - 1,300 words (McWhirter 228). The claim is both absurd because it is an achievement that could be easily bested (PINKER, 83), and inaccurate because Faulkner himself beat his own "record" with a 1,600 word sentence in *Go Down, Moses* (Fargnoli 102). Faulkner's long sentence are more than a matter of trivia, however; they redefine the concept of a sentence altogether. Normally, computing sentence length in a text is a very simple procedure, because sentences are a regular structure in a text. With Absalom, there are so many parenthetical phrases and embedded citations that is difficult to judge whether a sentence has ended based on the punctuation. Nor does human reading of the individual "sentences" necessarily offer any clarity. It might be more accurate to say that it is a collection of words occassionally broken up by punctuation. On average, it there are roughly, `r round(absalom_sentences_mean$mean_length,0)` words with `r absalom_sentences_long` exceeding 100 words. THE LONG SENTENCE 
+
+
+```{r parentheticals}
+
+absalom_parenthesis <- absalom_sentences %>%
+  mutate(parentheses = gsub("[^\\(\\)]", "", word)) %>%
+  filter (str_length(parentheses) > 0) %>%
+  mutate(pairs = str_count(parentheses, "\\(\\)")) %>%
+  mutate(nesting = str_count(parentheses, "\\(\\("))
+
+absalom_parenthesis_all <- absalom_txt %>%
+  mutate(parentheses = gsub("[^\\(\\)]", "", text)) %>%
+  mutate(pairs = str_count(parentheses, "\\(\\)")) %>%
+  mutate(nesting = str_count(parentheses, "\\(\\(")) %>%
+  
+
+parentheses_text <-
+  as.data.frame(str_extract_all(absalom_txt$text, "\\([^()]+\\)")[[1]])
+colnames(parentheses_text) <- "text"
+parentheses_text_count <- parentheses_text %>%
+  mutate (text = str_replace_all(text, "[:punct:]", " ")) %>%
+  mutate(word_count = str_count(text, "\\S+")) %>%
+  summarize(total = sum(word_count), mean = mean(word_count)) %>%
+  mutate(percent = total / absalom_length)
+
+``` 
+
+
+
+ One unique feature of Absalom his Faulkner's use of parenthesis. Throughout the text he uses `r absalom_parenthesis_all$pairs` asides to tell his story, and on `absalom_parenthesis_all$nesting` occassions these are "nested" with one parenthesis enframing another "(())", as happens frequently in Chapter 6. More to the point, nearly `r percent(parentheses_text_count$percent)` is a parenthetical aside. A significant part of the text therefore takes the reader out of the main flow of the narrative into smaller eddies and streams. The sensation of repetition can therefore be attributed, in part, to a sense of doubling back into the main clause of a long-sentence.
+
+```{r unique_words}
 unique_words <- absalom_df %>% 
                 unnest_tokens(word,text) %>% 
                 distinct(word) %>% 
-                filter (word ==str_match(word, "[a-z]+")) %>%
+                filter (word ==str_match(word, "[a-z]+")) 
+
+
+word_list <- as.data.frame(read_file("words_alpha.txt"))
+colnames(word_list) <- "word"
+
+word_list <- word_list %>% 
+            unnest_tokens(word,word)
+
+neologisms_export <- unique_words %>% 
+              anti_join(word_list)
+write_csv(neologisms_export, "neologisms_export.csv")
+
+neologisms_import <- read_csv("neologisms_import.csv") 
+neologisms_count <- nrow(neologisms_import)
+
+unique_words_count <- unique_words %>% 
                 nrow()
-                
+
 ```
 
-The text has an active vocabulary of around `r unique_words`. Compared to a tex like blank. This is much higher. Quite a number of these words are either neologisms like: unwived, unamazed, and untimorous, while others are are very uncommon such as catafalque, faience, and lagniappe. Even more proficient readers should not be embarrassed to consult a dictionary every once in a while.
 
-Yet, for all its linguistic density, it is also a repetitious book. Words and phrases echo throughout the text and evoke the sense that one is rereading a particular passage. This effect is very much observable in stylistic analysis. Computationally, it is possible to calculate how many phrases repeat over the course of the narrative. Such phrases are called n-grams where *n* indicates the number of words in the phrase. Thus, an n-gram can be two words: Charles Bon, or it can be much longer. The sixteen word sentence, "Then I could give you a decent stall in the stable' and turned and went out" is repeated verbatim twice (151, 229). Meanwhile, the four-word phrase, "the two of them" is repeated twenty-nine times.
+Perhaps the most immediately noticeable feature about the text is that it is accentuated with strange words. A number of these words (`r neologisms_count`) are either neologisms created by sticking together two words together to make an adjective - sunbuouyed, hyperdistilled - or negating an existing word - nothusband, unharbingered. Other words are either very uncommon, archaic, or regional, such as faience, gratulations, and lagniappe, respectively. Even more proficient readers should not be embarrassed to consult a dictionary every once in a while. For all this apparent lexical originality, statistically speaking, *Absalom, Absalom!* does not stand out for its word use. There are `r unique_words_count` unique words, which is actually fewer unique words than expected for a text of its length (chacoma 4, Bernhardsson 14). [^6]
+
+[^6]: Heaps' law predicts that that the number of unique words in a text is approximately the square root of the total number of words in a text. $V_R(n)= Kn^\beta$ where $V_R(n)$ is the number of distinct words in corpus $n$. The special parameters $10<K<100$ and $\beta \approx .5$ vary from corpus to corpus.
+
+Yet, for all its linguistic density, it is also a repetitious book. Words and phrases echo throughout the text and evoke the sense that one is rereading a particular passage several times. This effect can be observed in the data about the text as well. Computationally, it is possible to calculate how many phrases repeat over the course of the narrative. Such phrases are called n-grams where *n* indicates the number of words in the phrase. Thus, an n-gram can be two words: Charles Bon, or it can be much longer. The sixteen word sentence, "Then I could give you a decent stall in the stable' and turned and went out" is repeated verbatim twice (151, 229). Meanwhile, the four-word phrase, "the two of them" is repeated twenty-nine times.
 
 ```{r narrative_language, cache=TRUE}
 
@@ -847,406 +928,79 @@ ngrams_word_count <- ngrams_text_count %>%
   mutate(total_count = ngram_length * text_count) %>%           group_by(ngram_length) %>% 
   summarise(total = sum(total_count)) %>%  
   arrange(desc(ngram_length)) %>% 
-  mutate(total = cumsum(total)) %>% 
-  mutate(percent = total / absalom_length)
-                  
+  mutate(cum_total = cumsum(total)) %>% 
+  mutate(percent = total / absalom_length) %>% 
+  mutate(cum_percent = cum_total / absalom_length)      
+
+ngrams_word_count <- ngrams_word_count %>% 
+                                mutate(title = "absalom")   
 ```
 
-```{r}
-word_echo <- plot_ly(
-                ngrams_word_count,
-                x = ~ngram_length,
-                y = ~percent,
-                type = 'scatter',
-                mode = 'line'
-)
+Counting ngrams is necessarily a crude measure. It does not take into account very minor variations in phrasing. Rosa repeats the phrase "I hold no brief" six times (9, 12, 127, 131, 132), but she states "I hold no more brief" twice (11, 12). Clearly, both are part of the same lexical pattern, but are counted separately due to the slight variation. Nevertheless, it is still possible to quantify the number of directly repeated phrases in the text. Roughly `r percent(ngrams_word_count$percent[13])` of the texts consists of repeating phrases of four to sixteen words. In isolation, it appears that this is a very repetitive text, but, again, *Absalom* the repetitions fall a more general pattern of ngram distribution in English language works(Le Quon 106) [^7]
+
+[^7]: It appears that ngrams also follow Zipf's law. That is, the word frequency of words is proportional to their rank order. Thus, the second most frequent word will be half as frequent as the the first most frequent, the third most frequent will be one third as frequent and so forth.
+
+
+
+
+
+
+```{r absalom_character_ngrams}
+character_names <- absalom_events_short %>% 
+                    unnest_tokens(word, CharacterName) %>% 
+                    distinct(word)
+
+
+major_character_words <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>%
+  filter(CharacterName %in% c("Charles Bon",
+                              "Judith Sutpen",
+                              "Thomas Sutpen",
+                              "Henry Sutpen")) %>%
+  group_by(CharacterName) %>% 
+  unnest_tokens(word, event_sentence) %>% 
+  anti_join(stop_words) %>% 
+  anti_join(character_names) %>% 
+  count(word) %>% 
+  top_n(5) %>% 
+  arrange(CharacterName, desc(n))
+  
+major_character_ngrams <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>%
+  filter(CharacterName %in% c("Charles Bon",
+                              "Judith Sutpen",
+                              "Thomas Sutpen",
+                              "Henry Sutpen")) %>%
+  group_by(CharacterName) %>% 
+  unnest_ngrams(word, event_sentence, n=4) %>% 
+  count(word) %>% 
+  top_n(5) %>% 
+  arrange(CharacterName, desc(n)) 
+
+
+major_character_ngrams_ind <- major_character_ngrams %>% 
+  ungroup() %>% 
+  add_count(word, name = "repeated_ngram") %>% 
+  filter(repeated_ngram<2)
+
+major_character_ngrams_shared <- major_character_ngrams %>% 
+  ungroup() %>% 
+  add_count(word, name = "repeated_ngram") %>% 
+  filter(repeated_ngram>1)
+
+
+
+major_narrators_ngrams <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>%
+  filter(CharacterName %in% c("Quentin Compson",
+                              "Mr. Compson",
+                              "McCannon, Shreve",
+                              "Rosa Coldfield")) %>%
+  group_by(CharacterName) %>% 
+  unnest_ngrams(word, event_sentence, n=4) %>% 
+  count(word) %>% 
+  top_n(5) %>% 
+  arrange(CharacterName, desc(n))
 
-word_echo
-
-
-
-```
-
-Counting ngrams is necessarily a crude measure. It does not take into account very minor variations in phrasing. Rosa repeats the phrase "I hold no brief" six times (9, 12, 127, 131, 132), but she states "I hold no more brief" twice (11, 12). Clearly, both are part of the same linguistic pattern, but are counted separately due to the slight variation. Nevertheless, it is still possible to quantify the number of directly repeated phrases in the text. Roughly `r percent(ngrams_word_count$percent[13])` of the texts consists of repeating phrases of four to sixteen words. The text is demonstrably repetitious.
-
-
-```{r sound_fury_ngrams}
-sf_df <- as.data.frame(read_file("sound_and_the_fury_william_faulkner.txt"))
-colnames(sf_df) <- "text" 
-sf_df <- sf_df %>% 
-mutate(text = gsub("[‘’]", "'", text)) %>% 
-              unnest_tokens(text, text) %>%  
-              summarize(text = str_c(text, collapse = " "))
-
-# Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
-sf_ngram <- sf_df %>%
-  unnest_ngrams(word, text, n_min = 4, n = 16) %>%
-  count(word) %>%
-  filter(n > 1) %>%
-  mutate (ngram_length = str_count(word, "\\S+"))
-
-#create a helper file.
-# sf_short <- sf_ngram %>%
-#   select(word, ngram_length) %>%
-#   arrange(desc(ngram_length))
-
-
-
-#redupe <- sf_ngram %>%
-#           mutate(duplicate = str_detect(word, #sf_short$word))
-
-
-sf_deduped <-
-  #the map function iterates a function across the entire vector. In this case, search for each string in each string and keep track of the count.
-  map_df(
-    sf_ngram$word,
-    ~ str_count(sf_ngram$word, .x) %>%
-      sum  %>%
-      set_names(.x) %>%
-      enframe(name = "word", value = "count")
-  ) %>%
-  arrange(desc(count))
-
-#filter out any duplicates.
-sf_deduped_short <- sf_deduped %>%
-  filter (count == 1)
-
-#filter out the duplicated ngrams
-sf_ngrams_filtered <- sf_ngram %>%
-  inner_join(sf_deduped_short)
-
-#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue. 
-sf_ngrams_text_count <- sf_ngrams_filtered %>%
-  mutate(text_count =  str_count(sf_df$text, word))
-
-#Calculate text lengths.
-sf_length <- sf_df %>%
-  unnest_tokens(word, text) %>%
-  nrow()
-
-sf_ngrams_word_count <- sf_ngrams_text_count %>%
-  mutate(total_count = ngram_length * text_count) %>%           group_by(ngram_length) %>% 
-  summarise(total = sum(total_count)) %>%  
-  arrange(desc(ngram_length)) %>% 
-  mutate(total = cumsum(total)) %>% 
-  mutate(percent = total / sf_length)
-
-```
-
-```{r lay_dying_ngram}
-
-ail_df <- as.data.frame(read_file("as_I_lay_dying_william_faulkner.txt"))
-colnames(ail_df) <- "text" 
-ail_df <- ail_df %>% 
-mutate(text = gsub("[‘’]", "'", text)) %>% 
-              unnest_tokens(text, text) %>%  
-              summarize(text = str_c(text, collapse = " "))
-
-# Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
-ail_ngram <- ail_df %>%
-  unnest_ngrams(word, text, n_min = 4, n = 16) %>%
-  count(word) %>%
-  filter(n > 1) %>%
-  mutate (ngram_length = str_count(word, "\\S+"))
-
-#create a helper file.
-# ail_short <- ail_ngram %>%
-#   select(word, ngram_length) %>%
-#   arrange(desc(ngram_length))
-
-
-
-#redupe <- ail_ngram %>%
-#           mutate(duplicate = str_detect(word, #ail_short$word))
-
-
-ail_deduped <-
-  #the map function iterates a function across the entire vector. In this case, search for each string in each string and keep track of the count.
-  map_df(
-    ail_ngram$word,
-    ~ str_count(ail_ngram$word, .x) %>%
-      sum  %>%
-      set_names(.x) %>%
-      enframe(name = "word", value = "count")
-  ) %>%
-  arrange(desc(count))
-
-#filter out any duplicates.
-ail_deduped_short <- ail_deduped %>%
-  filter (count == 1)
-
-#filter out the duplicated ngrams
-ail_ngrams_filtered <- ail_ngram %>%
-  inner_join(ail_deduped_short)
-
-#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue. 
-ail_ngrams_text_count <- ail_ngrams_filtered %>%
-  mutate(text_count =  str_count(ail_df$text, word))
-
-#Calculate text lengths.
-ail_length <- ail_df %>%
-  unnest_tokens(word, text) %>%
-  nrow()
-
-ail_ngrams_word_count <- ail_ngrams_text_count %>%
-  mutate(total_count = ngram_length * text_count) %>%           group_by(ngram_length) %>% 
-  summarise(total = sum(total_count)) %>%  
-  arrange(desc(ngram_length)) %>% 
-  mutate(total = cumsum(total)) %>% 
-  mutate(percent = total / ail_length)
-
-
-```
-
-```{r light_in_august_ngram}
-lia_df <- as.data.frame(read_file("light_in_august_william_faulkner.txt"))
-colnames(lia_df) <- "text" 
-lia_df <- lia_df %>% 
-mutate(text = gsub("[‘’]", "'", text)) %>% 
-              unnest_tokens(text, text) %>%  
-              summarize(text = str_c(text, collapse = " "))
-
-# Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
-lia_ngram <- lia_df %>%
-  unnest_ngrams(word, text, n_min = 4, n = 16) %>%
-  count(word) %>%
-  filter(n > 1) %>%
-  mutate (ngram_length = str_count(word, "\\S+"))
-
-#create a helper file.
-# lia_short <- lia_ngram %>%
-#   select(word, ngram_length) %>%
-#   arrange(desc(ngram_length))
-
-
-
-#redupe <- lia_ngram %>%
-#           mutate(duplicate = str_detect(word, #lia_short$word))
-
-
-lia_deduped <-
-  #the map function iterates a function across the entire vector. In this case, search for each string in each string and keep track of the count.
-  map_df(
-    lia_ngram$word,
-    ~ str_count(lia_ngram$word, .x) %>%
-      sum  %>%
-      set_names(.x) %>%
-      enframe(name = "word", value = "count")
-  ) %>%
-  arrange(desc(count))
-
-#filter out any duplicates.
-lia_deduped_short <- lia_deduped %>%
-  filter (count == 1)
-
-#filter out the duplicated ngrams
-lia_ngrams_filtered <- lia_ngram %>%
-  inner_join(lia_deduped_short)
-
-#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue. 
-lia_ngrams_text_count <- lia_ngrams_filtered %>%
-  mutate(text_count =  str_count(lia_df$text, word))
-
-#Calculate text lengths.
-lia_length <- lia_df %>%
-  unnest_tokens(word, text) %>%
-  nrow()
-
-lia_ngrams_word_count <- lia_ngrams_text_count %>%
-  mutate(total_count = ngram_length * text_count) %>%           group_by(ngram_length) %>% 
-  summarise(total = sum(total_count)) %>%  
-  arrange(desc(ngram_length)) %>% 
-  mutate(total = cumsum(total)) %>% 
-  mutate(percent = total / lia_length)
-```
-
-```{r}
-dickens_df <- as.data.frame(read_file("great_expectations_dickens.txt"))
-colnames(dickens_df) <- "text" 
-dickens_df <- dickens_df %>% 
-mutate(text = gsub("[‘’]", "'", text)) %>% 
-              unnest_tokens(text, text) %>%  
-              summarize(text = str_c(text, collapse = " "))
-
-# Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
-dickens_ngram <- dickens_df %>%
-  unnest_ngrams(word, text, n_min = 4, n = 16) %>%
-  count(word) %>%
-  filter(n > 1) %>%
-  mutate (ngram_length = str_count(word, "\\S+"))
-
-#create a helper file.
-# dickens_short <- dickens_ngram %>%
-#   select(word, ngram_length) %>%
-#   arrange(desc(ngram_length))
-
-
-
-#redupe <- dickens_ngram %>%
-#           mutate(duplicate = str_detect(word, #dickens_short$word))
-
-
-dickens_deduped <-
-  #the map function iterates a function across the entire vector. In this case, search for each string in each string and keep track of the count.
-  map_df(
-    dickens_ngram$word,
-    ~ str_count(dickens_ngram$word, .x) %>%
-      sum  %>%
-      set_names(.x) %>%
-      enframe(name = "word", value = "count")
-  ) %>%
-  arrange(desc(count))
-
-#filter out any duplicates.
-dickens_deduped_short <- dickens_deduped %>%
-  filter (count == 1)
-
-#filter out the duplicated ngrams
-dickens_ngrams_filtered <- dickens_ngram %>%
-  inner_join(dickens_deduped_short)
-
-#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue. 
-dickens_ngrams_text_count <- dickens_ngrams_filtered %>%
-  mutate(text_count =  str_count(dickens_df$text, word))
-
-#Calculate text lengths.
-dickens_length <- dickens_df %>%
-  unnest_tokens(word, text) %>%
-  nrow()
-
-dickens_ngrams_word_count <- dickens_ngrams_text_count %>%
-  mutate(total_count = ngram_length * text_count) %>%           group_by(ngram_length) %>% 
-  summarise(total = sum(total_count)) %>%  
-  arrange(desc(ngram_length)) %>% 
-  mutate(total = cumsum(total)) %>% 
-  mutate(percent = total / dickens_length)
-```
-
-
-```{r melville_ngram}
-melville_df <- as.data.frame(read_file("moby_dick_herman_melville.txt"))
-colnames(melville_df) <- "text" 
-melville_df <- melville_df %>% 
-mutate(text = gsub("[‘’]", "'", text)) %>% 
-              unnest_tokens(text, text) %>%  
-              summarize(text = str_c(text, collapse = " "))
-
-# Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
-melville_ngram <- melville_df %>%
-  unnest_ngrams(word, text, n_min = 4, n = 16) %>%
-  count(word) %>%
-  filter(n > 1) %>%
-  mutate (ngram_length = str_count(word, "\\S+"))
-
-#create a helper file.
-# melville_short <- melville_ngram %>%
-#   select(word, ngram_length) %>%
-#   arrange(desc(ngram_length))
-
-
-
-#redupe <- melville_ngram %>%
-#           mutate(duplicate = str_detect(word, #melville_short$word))
-
-
-melville_deduped <-
-  #the map function iterates a function across the entire vector. In this case, search for each string in each string and keep track of the count.
-  map_df(
-    melville_ngram$word,
-    ~ str_count(melville_ngram$word, .x) %>%
-      sum  %>%
-      set_names(.x) %>%
-      enframe(name = "word", value = "count")
-  ) %>%
-  arrange(desc(count))
-
-#filter out any duplicates.
-melville_deduped_short <- melville_deduped %>%
-  filter (count == 1)
-
-#filter out the duplicated ngrams
-melville_ngrams_filtered <- melville_ngram %>%
-  inner_join(melville_deduped_short)
-
-#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue. 
-melville_ngrams_text_count <- melville_ngrams_filtered %>%
-  mutate(text_count =  str_count(melville_df$text, word))
-
-#Calculate text lengths.
-melville_length <- melville_df %>%
-  unnest_tokens(word, text) %>%
-  nrow()
-
-melville_ngrams_word_count <- melville_ngrams_text_count %>%
-  mutate(total_count = ngram_length * text_count) %>%           group_by(ngram_length) %>% 
-  summarise(total = sum(total_count)) %>%  
-  arrange(desc(ngram_length)) %>% 
-  mutate(total = cumsum(total)) %>% 
-  mutate(percent = total / melville_length)
-
-
-
-```
-
-```{r}
-twain_df <- as.data.frame(read_file("huckleberry_finn_mark_twain.txt"))
-colnames(twain_df) <- "text" 
-twain_df <- twain_df %>% 
-mutate(text = gsub("[‘’]", "'", text)) %>% 
-              unnest_tokens(text, text) %>%  
-              summarize(text = str_c(text, collapse = " "))
-
-# Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
-twain_ngram <- twain_df %>%
-  unnest_ngrams(word, text, n_min = 4, n = 16) %>%
-  count(word) %>%
-  filter(n > 1) %>%
-  mutate (ngram_length = str_count(word, "\\S+"))
-
-#create a helper file.
-# twain_short <- twain_ngram %>%
-#   select(word, ngram_length) %>%
-#   arrange(desc(ngram_length))
-
-
-
-#redupe <- twain_ngram %>%
-#           mutate(duplicate = str_detect(word, #twain_short$word))
-
-
-twain_deduped <-
-  #the map function iterates a function across the entire vector. In this case, search for each string in each string and keep track of the count.
-  map_df(
-    twain_ngram$word,
-    ~ str_count(twain_ngram$word, .x) %>%
-      sum  %>%
-      set_names(.x) %>%
-      enframe(name = "word", value = "count")
-  ) %>%
-  arrange(desc(count))
-
-#filter out any duplicates.
-twain_deduped_short <- twain_deduped %>%
-  filter (count == 1)
-
-#filter out the duplicated ngrams
-twain_ngrams_filtered <- twain_ngram %>%
-  inner_join(twain_deduped_short)
-
-#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue. 
-twain_ngrams_text_count <- twain_ngrams_filtered %>%
-  mutate(text_count =  str_count(twain_df$text, word))
-
-#Calculate text lengths.
-twain_length <- twain_df %>%
-  unnest_tokens(word, text) %>%
-  nrow()
-
-twain_ngrams_word_count <- twain_ngrams_text_count %>%
-  mutate(total_count = ngram_length * text_count) %>%           group_by(ngram_length) %>% 
-  summarise(total = sum(total_count)) %>%  
-  arrange(desc(ngram_length)) %>% 
-  mutate(total = cumsum(total)) %>% 
-  mutate(percent = total / twain_length)
 ```
 
