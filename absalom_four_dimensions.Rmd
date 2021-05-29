@@ -786,7 +786,7 @@ The most prominent source of information is Quentin's father (`r percent(narrato
 
 ### "it struck, word by word, the resonant strings of remembering"
 
-An analysis of characters, locations, and events pulls *Absalom, Absalom!* in different directions, none of which lead to a unified interpretation. One thing that ties them all together is language; each entity in the text is woven together through language. Indeed, a number of critics have taken this approach and pointed out that Faulkner's use of language in *Absalom, Absalom!* is blank, blank, blank. Stylistic analysis reveals something quite contradictory: the language is simultaneously unique and unremarkable.
+An analysis of characters, locations, and events pulls *Absalom, Absalom!* in different directions, none of which lead to a unified interpretation. One thing that ties them all together is language; each entity in the text is woven together through Faulkner's intricate prose. Indeed, a number of critics have taken this approach and pointed out that Faulkner's use of language in *Absalom, Absalom!* is blank, blank, blank. Stylistic analysis reveals something quite contradictory: the language is simultaneously unique and unremarkable.
 
 ```{r sentence_length}
 #parentheticals..
@@ -797,12 +797,16 @@ colnames(absalom_txt) <- "text"
 absalom_clean <- absalom_txt %>% 
 mutate(text = gsub("[,\\!\\?\\.](?=[^’‘]*’[\\s—-])"," ",text, perl=TRUE))
 
-#[,\!\?\.](?=[^’‘]*’[\s—-]) This regex worked, but cannot be implemented
+write_file(absalom_clean$text, "clean_text.txt")
+
+#Regex explained:
+#[,\\!\\?\\.] find any of !,?.
+#(?=[^’‘] not followed by curly quote. The closing curly quote is counterintuitive here, but it helps exclude 's as in Sutpen's. Instead, we want all curly quotes followed with a white space \s: 
+#*’[\\s—-]) the en and em dash are there because sometimes these can abut the closing curly quote.
 
 absalom_sentences <- absalom_clean %>%
   unnest_regex(word, text, "[.?!]") %>%
   mutate (string_length = str_count(word, "\\S+"))  
-
 
 absalom_sentences_mean <-  absalom_sentences %>%
   summarize(mean_length = mean(absalom_sentences$string_length))
@@ -812,10 +816,13 @@ absalom_sentences_long <- absalom_sentences %>%
   nrow()
 ```
 
-Perhaps the most noted stylistic feature of *Absalom, Absalom!* is the length of the sentences. In fact, according to the 1983 *Guinness Book of World Records* it holds the dubious record of containing the longest sentence in the English language - 1,300 words (McWhirter 228). The claim is both absurd because it is an achievement that could be easily bested (PINKER, 83), and inaccurate because Faulkner himself beat his own "record" with a 1,600 word sentence in *Go Down, Moses* (Fargnoli 102). Faulkner's long sentence are more than a matter of trivia, however; they redefine the concept of a sentence altogether. Normally, computing sentence length in a text is a very simple procedure, because sentences are a regular structure in a text. With Absalom, there are so many parenthetical phrases and embedded citations that is difficult to judge whether a sentence has ended based on the punctuation. Nor does human reading of the individual "sentences" necessarily offer any clarity. It might be more accurate to say that it is a collection of words occassionally broken up by punctuation. On average, it there are roughly, `r round(absalom_sentences_mean$mean_length,0)` words with `r absalom_sentences_long` exceeding 100 words. THE LONG SENTENCE 
+The most noted stylistic feature of *Absalom, Absalom!* is the length of the sentences. In fact, according to the 1983 *Guinness Book of World Records* it holds the dubious record of the longest sentence in the English language - 1,300 words (McWhirter 228). The claim is both absurd because it is an achievement that could easily be bested (PINKER, 83), and inaccurate because Faulkner himself beat his own "record" with a 1,600 word sentence in *Go Down, Moses* (Fargnoli 102). Faulkner's long sentences are more than a matter of trivia, however; they quite literally stretch the very concept of the sentence, by extension the English language. It is a measure of some comfort that they cause trouble for computers and humans alike. Normally, computing sentence length in a text is a very simple procedure. With *Absalom, Absalom!*, it is difficult to detect whether a sentence has ended, because there are so many parenthetical phrases and embedded quotations that follow Faulkner's own idiosyncratic structure. It might be more accurate to say that the novel is a collection of clauses occasionally interrupted by punctuation. Given this, the computed average sentence length of `r round(absalom_sentences_mean$mean_length,0)` is therefore at best a rough measure. It is clear though, that they are significantly longer than other works in English written in the 1930s, which are only about 13 words per sentence (RUDNICKA 233). The average masks the sheer number of long sentences in the text, `r absalom_sentences_long` sentences exceed 100 words.
 
+For Faulkner, these long sentence are more than mere rhetorical pyrotechnics, but are an attempt to capture the experience of living. Asked in an interview about why he wrote such long sentences, Faulkner contends that there is no such thing as "was" because everyone brings their past with them. His long sentences are a way to capture this sensation, "a man, a character in a story at any moment of action is not just himself as he is then, he is all that made him, and the long sentence is an attempt to get his past and possibly his future into the instant in which he does something" [Faulkner 1965]. In a sense, the prose complements the narrative structure, which also sees the past continuously returning.
 
 ```{r parentheticals}
+
+#get
 
 absalom_parenthesis <- absalom_sentences %>%
   mutate(parentheses = gsub("[^\\(\\)]", "", word)) %>%
@@ -826,23 +833,42 @@ absalom_parenthesis <- absalom_sentences %>%
 absalom_parenthesis_all <- absalom_txt %>%
   mutate(parentheses = gsub("[^\\(\\)]", "", text)) %>%
   mutate(pairs = str_count(parentheses, "\\(\\)")) %>%
-  mutate(nesting = str_count(parentheses, "\\(\\(")) %>%
+  mutate(nesting = str_count(parentheses, "\\(\\("))
   
+absalom_internal_parentheses <- absalom_clean %>% 
+                                mutate (text = gsub("[())](?=[^)(]*\\)[\\s—-])","@", text, perl = TRUE)) 
 
-parentheses_text <-
-  as.data.frame(str_extract_all(absalom_txt$text, "\\([^()]+\\)")[[1]])
+write_file(absalom_internal_parentheses$text, "internal_parenth.txt")
+
+#Text extrucsion sucks
+#This file was custom created and replaced all nested parentheses with @. There were simply too many edge cases to merit a regex expression. 
+
+cleaned_parentheses <-
+    as.data.frame(read_file("coded_internal_parentheses.txt"))
+colnames(cleaned_parentheses) <- "text"
+
+
+parentheses_text <- as.data.frame(str_extract_all(cleaned_parentheses$text, "\\([^()]+\\)")[[1]])
 colnames(parentheses_text) <- "text"
-parentheses_text_count <- parentheses_text %>%
-  mutate (text = str_replace_all(text, "[:punct:]", " ")) %>%
-  mutate(word_count = str_count(text, "\\S+")) %>%
-  summarize(total = sum(word_count), mean = mean(word_count)) %>%
+parentheses_text_count <- nrow(parentheses_text)
+
+nested_parentheses_text <- 
+as.data.frame(str_extract_all(cleaned_parentheses$text, "@.*@")[[1]])
+colnames(nested_parentheses_text) <- "text"
+nested_parentheses_text_count <- nrow(nested_parentheses_text)
+
+parentheses_text_lengths <- parentheses_text %>%
+  mutate(word_count = str_count(text, "\\S+"))  
+
+parentheses_text_longest <- max(parentheses_text_lengths$word_count)
+
+parentheses_text_mean <- parentheses_text_lengths %>% 
+ summarize(total = sum(word_count), mean = mean(word_count)) %>%
   mutate(percent = total / absalom_length)
 
-``` 
+```
 
-
-
- One unique feature of Absalom his Faulkner's use of parenthesis. Throughout the text he uses `r absalom_parenthesis_all$pairs` asides to tell his story, and on `absalom_parenthesis_all$nesting` occassions these are "nested" with one parenthesis enframing another "(())", as happens frequently in Chapter 6. More to the point, nearly `r percent(parentheses_text_count$percent)` is a parenthetical aside. A significant part of the text therefore takes the reader out of the main flow of the narrative into smaller eddies and streams. The sensation of repetition can therefore be attributed, in part, to a sense of doubling back into the main clause of a long-sentence.
+Complicating these already challenging syntactical structures is Faulkner's unique use of parenthesis. Throughout the text he uses `r absalom_parenthesis_all$pairs` asides to tell his story, and on `absalom_parenthesis_all$nesting` occassions these are "nested" with one parenthesis enframing another "(())", as happens frequently in Chapter 6. More to the point, nearly `r percent(parentheses_text_count$percent)` is a parenthetical aside. A significant part of the text therefore takes the reader out of the main flow of the narrative into smaller eddies and streams. The sensation of repetition can therefore be attributed, in part, to a sense of doubling back into the main clause of a long-sentence.
 
 ```{r unique_words}
 unique_words <- absalom_df %>% 
@@ -868,7 +894,6 @@ unique_words_count <- unique_words %>%
                 nrow()
 
 ```
-
 
 Perhaps the most immediately noticeable feature about the text is that it is accentuated with strange words. A number of these words (`r neologisms_count`) are either neologisms created by sticking together two words together to make an adjective - sunbuouyed, hyperdistilled - or negating an existing word - nothusband, unharbingered. Other words are either very uncommon, archaic, or regional, such as faience, gratulations, and lagniappe, respectively. Even more proficient readers should not be embarrassed to consult a dictionary every once in a while. For all this apparent lexical originality, statistically speaking, *Absalom, Absalom!* does not stand out for its word use. There are `r unique_words_count` unique words, which is actually fewer unique words than expected for a text of its length (chacoma 4, Bernhardsson 14). [^6]
 
@@ -940,11 +965,6 @@ Counting ngrams is necessarily a crude measure. It does not take into account ve
 
 [^7]: It appears that ngrams also follow Zipf's law. That is, the word frequency of words is proportional to their rank order. Thus, the second most frequent word will be half as frequent as the the first most frequent, the third most frequent will be one third as frequent and so forth.
 
-
-
-
-
-
 ```{r absalom_character_ngrams}
 character_names <- absalom_events_short %>% 
                     unnest_tokens(word, CharacterName) %>% 
@@ -1003,4 +1023,3 @@ major_narrators_ngrams <- absalom_events_short %>%
   arrange(CharacterName, desc(n))
 
 ```
-
