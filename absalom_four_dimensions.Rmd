@@ -10,11 +10,14 @@ bibliography: "bibliography.bib"
 
 ```{r setup, include=FALSE, message = FALSE, warning=FALSE, error=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning=FALSE, error=FALSE, tidy='styler')
+knitr::knit_engines$set(python = reticulate::eng_python)
 ```
+
 
 #### Load Libraries
 
 ```{r load_packages}
+library(reticulate)
 library(tidyverse)
 library(tidytext)
 #library(stringi)
@@ -822,77 +825,77 @@ For Faulkner, these long sentence are more than mere rhetorical pyrotechnics, bu
 
 ```{r parentheticals}
 
-#get
+#create a clean version of the text without punctuation except parentheses. #NOTE: The amount of parentheses in the text is uneven. An extra one was added at the end of chapter 6.
+parentheses_file <-
+  as.data.frame(read_file("faulkner_absalom_parentheses.txt"))
+colnames(parentheses_file) <- "text"
 
-absalom_parenthesis <- absalom_sentences %>%
-  mutate(parentheses = gsub("[^\\(\\)]", "", word)) %>%
-  filter (str_length(parentheses) > 0) %>%
-  mutate(pairs = str_count(parentheses, "\\(\\)")) %>%
-  mutate(nesting = str_count(parentheses, "\\(\\("))
+parentheses_clean <- parentheses_file %>%
+  mutate (text = gsub("[\t\n\r]", "", text, perl = TRUE)) %>%
+  mutate (text = gsub("[—]", "", text, perl = TRUE)) %>%
+  mutate(text = gsub("[‘’'\"\\“\\”\\.\\?\\!\\,]", "", text, perl = TRUE))
 
-absalom_parenthesis_all <- absalom_txt %>%
-  mutate(parentheses = gsub("[^\\(\\)]", "", text)) %>%
-  mutate(pairs = str_count(parentheses, "\\(\\)")) %>%
-  mutate(nesting = str_count(parentheses, "\\(\\("))
-  
-absalom_internal_parentheses <- absalom_clean %>% 
-                                mutate (text = gsub("[())](?=[^)(]*\\)[\\s—-])","@", text, perl = TRUE)) 
-
-write_file(absalom_internal_parentheses$text, "internal_parenth.txt")
-
-#Text extrucsion sucks
-#This file was custom created and replaced all nested parentheses with @. There were simply too many edge cases to merit a regex expression. 
-
-cleaned_parentheses <-
-    as.data.frame(read_file("coded_internal_parentheses.txt"))
-colnames(cleaned_parentheses) <- "text"
-
-
-parentheses_text <- as.data.frame(str_extract_all(cleaned_parentheses$text, "\\([^()]+\\)")[[1]])
-colnames(parentheses_text) <- "text"
-parentheses_text_count <- nrow(parentheses_text)
-
-nested_parentheses_text <- 
-as.data.frame(str_extract_all(cleaned_parentheses$text, "@.*@")[[1]])
-colnames(nested_parentheses_text) <- "text"
-nested_parentheses_text_count <- nrow(nested_parentheses_text)
-
-parentheses_text_lengths <- parentheses_text %>%
-  mutate(word_count = str_count(text, "\\S+"))  
-
-parentheses_text_longest <- max(parentheses_text_lengths$word_count)
-
-parentheses_text_mean <- parentheses_text_lengths %>% 
- summarize(total = sum(word_count), mean = mean(word_count)) %>%
-  mutate(percent = total / absalom_length)
-
+absalom_string <- parentheses_clean$text
 ```
 
-Complicating these already challenging syntactical structures is Faulkner's unique use of parenthesis. Throughout the text he uses `r absalom_parenthesis_all$pairs` asides to tell his story, and on `absalom_parenthesis_all$nesting` occassions these are "nested" with one parenthesis enframing another "(())", as happens frequently in Chapter 6. More to the point, nearly `r percent(parentheses_text_count$percent)` is a parenthetical aside. A significant part of the text therefore takes the reader out of the main flow of the narrative into smaller eddies and streams. The sensation of repetition can therefore be attributed, in part, to a sense of doubling back into the main clause of a long-sentence.
+```{python nested_sentences}
+
+#This code snippet converts all of the nested parentheses into a list object. Full credit goes to: https://stackoverflow.com/users/68063/gareth-rees
+
+def parenthetic_contents(string):
+    """Generate parenthesized contents in string as pairs (level, contents)."""
+    stack = []
+    for i, c in enumerate(string):
+        if c == '(':
+            stack.append(i)
+        elif c == ')' and stack:
+            start = stack.pop()
+            yield (len(stack), string[start + 1: i])
+
+py_nested_sentences = list(parenthetic_contents(r.absalom_string))
+```
+
+
+```{r get_python_value}
+nested_sentence <- py$py_nested_sentences
+
+names(nested_sentence[[1]]) <- c("depth", "sentence")
+
+parenthetical_sentences <- as.data.frame(do.call(rbind, nested_sentence))
+```
+
+```{r}
+parenthetical_sentences_length <- parenthetical_sentences %>% 
+                                  filter(depth ==0) %>% 
+                                  mutate(word_count = str_count(sentence, "\\S+")) %>% 
+                                summarize(total = sum(word_count)) %>% 
+                                  mutate(percent = total/absalom_length)
+```
+
+
+	 
 
 ```{r unique_words}
-unique_words <- absalom_df %>% 
-                unnest_tokens(word,text) %>% 
-                distinct(word) %>% 
-                filter (word ==str_match(word, "[a-z]+")) 
-
+unique_words <- absalom_df %>%
+  unnest_tokens(word, text) %>%
+  distinct(word) %>%
+  filter (word == str_match(word, "[a-z]+"))
 
 word_list <- as.data.frame(read_file("words_alpha.txt"))
 colnames(word_list) <- "word"
 
-word_list <- word_list %>% 
-            unnest_tokens(word,word)
+word_list <- word_list %>%
+  unnest_tokens(word, word)
 
-neologisms_export <- unique_words %>% 
-              anti_join(word_list)
+neologisms_export <- unique_words %>%
+  anti_join(word_list)
 write_csv(neologisms_export, "neologisms_export.csv")
 
-neologisms_import <- read_csv("neologisms_import.csv") 
+neologisms_import <- read_csv("neologisms_import.csv")
 neologisms_count <- nrow(neologisms_import)
 
-unique_words_count <- unique_words %>% 
-                nrow()
-
+unique_words_count <- unique_words %>%
+  nrow()
 ```
 
 Perhaps the most immediately noticeable feature about the text is that it is accentuated with strange words. A number of these words (`r neologisms_count`) are either neologisms created by sticking together two words together to make an adjective - sunbuouyed, hyperdistilled - or negating an existing word - nothusband, unharbingered. Other words are either very uncommon, archaic, or regional, such as faience, gratulations, and lagniappe, respectively. Even more proficient readers should not be embarrassed to consult a dictionary every once in a while. For all this apparent lexical originality, statistically speaking, *Absalom, Absalom!* does not stand out for its word use. There are `r unique_words_count` unique words, which is actually fewer unique words than expected for a text of its length (chacoma 4, Bernhardsson 14). [^6]

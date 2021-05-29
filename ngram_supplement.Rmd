@@ -12,6 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 left over data for doing ngram research. Not conclusive
 ```{r}
+#Get all nested parentheses
+
+#[()](?=[^)(]*\)[\s—-])
+
 
 ```
 
@@ -496,5 +500,105 @@ absalom_sentences_tree <- absalom_sentences %>%
     mutate(start_sum = cumsum(middle_length)) %>% 
     unnest_regex(close_sentence, middle_sentence, "\\)") %>% 
     mutate(close_length = str_length(close_sentence)) 
+```
+
+```{r}
+#Dead code for parentheses
+
+#get
+
+absalom_parenthesis <- absalom_sentences %>%
+  mutate(parentheses = gsub("[^\\(\\)]", "", word)) %>%
+  filter (str_length(parentheses) > 0) %>%
+  mutate(pairs = str_count(parentheses, "\\(\\)")) %>%
+  mutate(nesting = str_count(parentheses, "\\(\\("))
+
+absalom_parenthesis_all <- absalom_txt %>%
+  mutate(parentheses = gsub("[^\\(\\)]", "", text)) %>%
+  mutate(pairs = str_count(parentheses, "\\(\\)")) %>%
+  mutate(nesting = str_count(parentheses, "\\(\\("))
+  
+absalom_internal_parentheses <- absalom_clean %>% 
+                                mutate (text = gsub("[)](?=[^)(]*\\)[\\s—-])","@", text, perl = TRUE)) 
+
+write_file(absalom_internal_parentheses$text, "internal_parenth.txt")
+
+
+#This file was custom created and replaced all nested parentheses with @. There were simply too many edge cases to merit a regex expression. 
+
+  first_clean <- as.data.frame(read_file("absalom_cleaned_to_match_4_30_rev4.txt"))
+colnames(first_clean) <- "text"
+
+first_clean_out <- first_clean %>% 
+ mutate (text = gsub("[\t\n\r]","", text, perl = TRUE)) %>% 
+ mutate (text = gsub( "—", " ", text, perl= TRUE))
+
+write_file(first_clean_out$text, "first_clean.txt")
+
+matched <- gregexpr("\\((?>[^()]|(?R))*\\)", third_clean_out$text, perl = T)
+matched_again <- as.data.frame(substring(third_clean_out, matched[[1]], matched[[1]] + attr(matched[[1]], "match.length") - 1))
+
+write_csv(matched_again, "parenthesis_trial.csv")
+
+cleaned_parentheses <-
+    as.data.frame(read_file("coded_internal_parentheses.txt"))
+colnames(cleaned_parentheses) <- "text"
+
+absalom_second_pass <- cleaned_parentheses %>% 
+                                mutate (text = gsub("[)](?=[^)(]*\\)[\\s—-])","@", text, perl = TRUE)) 
+
+write_file(absalom_second_pass$text, "second_pass.txt")
+
+
+parentheses_text <- as.data.frame(str_extract_all(cleaned_parentheses$text, "\\([^()]+\\)")[[1]])
+colnames(parentheses_text) <- "text"
+parentheses_text_count <- nrow(parentheses_text)
+
+nested_parentheses_text <- 
+as.data.frame(str_extract_all(cleaned_parentheses$text, "@.*@")[[1]])
+colnames(nested_parentheses_text) <- "text"
+nested_parentheses_text_count <- nrow(nested_parentheses_text)
+
+parentheses_text_lengths <- parentheses_text %>%
+  mutate(word_count = str_count(text, "\\S+"))  
+
+parentheses_text_longest <- max(parentheses_text_lengths$word_count)
+
+parentheses_text_mean <- parentheses_text_lengths %>% 
+ summarize(total = sum(word_count), mean = mean(word_count)) %>%
+  mutate(percent = total / absalom_length)
+
+#get
+
+absalom_parenthesis <- absalom_sentences %>%
+  mutate(parentheses = gsub("[^\\(\\)]", "", word)) %>%
+  filter (str_length(parentheses) > 0) %>%
+  mutate(pairs = str_count(parentheses, "\\(\\)")) %>%
+  mutate(nesting = str_count(parentheses, "\\(\\("))
+
+absalom_parenthesis_all <- absalom_txt %>%
+  mutate(parentheses = gsub("[^\\(\\)]", "", text)) %>%
+  mutate(pairs = str_count(parentheses, "\\(\\)")) %>%
+  mutate(nesting = str_count(parentheses, "\\(\\("))
+  
+absalom_internal_parentheses <- absalom_clean %>% 
+                                mutate (text = gsub("[)](?=[^)(]*\\)[\\s—-])","@", text, perl = TRUE)) 
+
+write_file(absalom_internal_parentheses$text, "internal_parenth.txt")
+
+
+#This file was custom created and replaced all nested parentheses with @. There were simply too many edge cases to merit a regex expression. 
+
+  first_clean <- as.data.frame(read_file("absalom_cleaned_to_match_4_30_rev4.txt"))
+colnames(first_clean) <- "text"
+
+first_clean_out <- first_clean %>% 
+ mutate (text = gsub("[\t\n\r]","", text, perl = TRUE)) %>% 
+ mutate (text = gsub( "—", " ", text, perl= TRUE))
+
+write_file(first_clean_out$text, "first_clean.txt")
+
+
+
 ```
 
