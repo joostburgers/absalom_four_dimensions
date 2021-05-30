@@ -39,7 +39,7 @@ colnames(absalom_df) <- "text"
 
 absalom_df <- absalom_df %>% 
 mutate(text = gsub("[‘’]", "'", text)) %>% 
-              unnest_tokens(text, text) %>%  
+              unnest_tokens(text, text) %>% 
               summarize(text = str_c(text, collapse = " "))
 ```
 
@@ -49,6 +49,13 @@ absalom_event_sentences <- read_csv("absalom_event_sentences_clean_2021_5_10.csv
 #This file was created by recomposing the text based on the "First Words" column and matching the text segments with each event using a copy of the text. As this process is quite involved it has been branched out into a separate file: absalom_sentiment_text_processing. Full details on the process can be viewed there.
 
 ```
+
+#global variables
+
+```{r global_variables}
+absalom_length <- str_count(absalom_df$text, "\\S+")
+```
+
 
 ```{r absalom_event_word_count}
 event_length <- absalom_event_sentences %>%
@@ -72,7 +79,6 @@ aa_event_dates <- aa_event_dates %>%
 
 ```{r chapter_numbers}
 chapter_numbers <- read_csv("chapter_numbers.csv")
-
 ```
 
 ```{r clean_up_absalom_events}
@@ -131,9 +137,6 @@ plot_font <- list(
   family = "'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif",
   size = 14,
   color = '#363636')
-
-
-
 ```
 
 ## Introduction
@@ -281,7 +284,7 @@ This point is further amplified when character presence is taken into considerat
 
 Similarly, the text also highlights the constructedness of race through the trajectory of Charles Bon's son with the unnamed "octoroon" wife. Charles Etienne Saint-Valery Bon crosses the color line with a woman disparagingly described as "coal black and ape-like" (166). Like his father, he too is punished for his racial transgressions, and both Black and White see what they want to see. In the company of his soon to be wedded wife, he tells the "negro stevedores and deckhands" that he is not a White man, but as a result they "believed it only the more strongly," and when he tells "white men" that he is a "negro" they believe he "lied in order to save his skin" (167). In both cases, the confrontations end in violence. There is a deep racial irony here. Charles Bon is murdered because it is believed he might not be "fully" White and tries to marry a White woman, and Charles Etienne is met with violence because no one believes he might be part Black and is married to a Black woman. In these two mirror images of father and son, *Absalom, Absalom!* demonstrates the arbitrariness of the color line.
 
-```{r}
+```{r mixed_ancestry_present}
 total_present_length <- absalom_events_short %>%
   filter(PresentMentioned == "Present") %>%
   distinct(EventID, .keep_all = TRUE) %>%
@@ -305,7 +308,6 @@ character_appearances <- absalom_events_short %>%
     )
   ) %>%
   arrange(CharacterName)
-
 ```
 
 A less generous perspective is that Faulkner is not so much concerned with destabilizing the color line, but instead preoccupied with what racial segregation means for Whiteness. That is, if the text were truly investigating how the color line affected the white and black communities, the different trajectories of each mixed ancestry character would receive a more equal amount of attention. As it stands, Charles Etienne and his struggles with Blackness appear in only `r percent(character_appearances$percent[2])` of the text. Other mixed ancestry are similarly marginalized. Clytemnestra's fate is particularly cruel. Despite being Sutpen's daughter, she is continuously disassociated from the family, and is alternately described as "negro half sister" (87), "wild" (126), "without sex or age" (109), "negress" (139), or, simply, "servant" (149). She speaks maybe a handful of words and is present in only `r percent(character_appearances$percent[3])` of the text. This is to say nothing of Charles Etienne's mother (`r percent(character_appearances$percent[5])`), or his even more marginalized son, Jim Bond (`r percent(character_appearances$percent[4])`), who only says four words: "Calls me Jim Bond" (297). This is in contrast to Charles Bon who receives far more attention than all four combined (`r percent(character_appearances$percent[1])`).\
@@ -850,7 +852,7 @@ def parenthetic_contents(string):
             stack.append(i)
         elif c == ')' and stack:
             start = stack.pop()
-            yield (len(stack), string[start + 1: i])
+            yield (len(stack)+1, string[start + 1: i],start, start + len(string[start + 1: i]))
 
 py_nested_sentences = list(parenthetic_contents(r.absalom_string))
 ```
@@ -859,17 +861,53 @@ py_nested_sentences = list(parenthetic_contents(r.absalom_string))
 ```{r get_python_value}
 nested_sentence <- py$py_nested_sentences
 
-names(nested_sentence[[1]]) <- c("depth", "sentence")
+names(nested_sentence[[1]]) <- c("depth", "sentence", "start", "end")
 
-parenthetical_sentences <- as.data.frame(do.call(rbind, nested_sentence))
+parenthetical_sentences <- do.call(rbind.data.frame, nested_sentence)
+
 ```
 
-```{r}
+```{r zero_level_depth}
+
+character_index <-  as.data.frame(c(1:nchar(parentheses_clean$text)) )
+colnames(character_index)    <- "start"               
+
+character_index_full <- character_index %>% 
+                        mutate (end = 0) %>% 
+                        mutate (sentence = " ", .before= everything()) %>%  
+                        mutate( depth = 0, .before = everything())
+```
+
+```{r all_depths}
+
+all_depths <- parenthetical_sentences %>% 
+              bind_rows(character_index_full)
+
+```
+
+
+```{r parenthetical_length}
 parenthetical_sentences_length <- parenthetical_sentences %>% 
                                   filter(depth ==0) %>% 
                                   mutate(word_count = str_count(sentence, "\\S+")) %>% 
                                 summarize(total = sum(word_count)) %>% 
                                   mutate(percent = total/absalom_length)
+```
+
+
+```{r parenthetical_sentence_branch}
+
+# #parentheses_plot <- plot_ly(
+#                       all_depths,
+#                       x= ~start,
+#                       y= ~depth
+# )
+
+
+
+#parentheses_plot
+
+
 ```
 
 
