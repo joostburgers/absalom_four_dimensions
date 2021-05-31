@@ -602,3 +602,180 @@ write_file(first_clean_out$text, "first_clean.txt")
 
 ```
 
+### working code for parentheses below. Cleaned up in the final version
+
+```{r}
+
+
+
+```
+
+
+
+```{r parentheticals}
+
+#create a clean version of the text without punctuation except parentheses. #NOTE: The amount of parentheses in the text is uneven. An extra one was added at the end of chapter 6.
+parentheses_file <-
+    as.data.frame(read_file("faulkner_absalom_parentheses.txt"))
+colnames(parentheses_file) <- "text"
+
+parentheses_clean <- parentheses_file %>%
+  mutate (text = gsub("[\t\n\r]", "", text, perl = TRUE)) %>%
+  mutate (text = gsub("[—]", "", text, perl = TRUE)) %>%
+  mutate(text = gsub("[‘’'\"\\“\\”\\.\\?\\!\\,]", "", text, perl = TRUE))
+
+absalom_string <- parentheses_clean$text
+```
+
+```{python nested_sentences}
+
+#This code snippet converts all of the nested parentheses into a list object. Full credit goes to: https://stackoverflow.com/users/68063/gareth-rees
+
+def parenthetic_contents(string):
+    """Generate parenthesized contents in string as pairs (level, contents)."""
+    stack = []
+    for i, c in enumerate(string):
+        if c == '(':
+            stack.append(i)
+        elif c == ')' and stack:
+            start = stack.pop()
+            yield (len(stack)+1, string[start + 1: i],start, start + len(string[start + 1: i]))
+
+py_nested_sentences = list(parenthetic_contents(r.absalom_string))
+```
+
+
+```{r get_python_value}
+nested_sentence <- py$py_nested_sentences
+
+names(nested_sentence[[1]]) <- c("depth", "sentence", "start", "end")
+
+parenthetical_sentences <- do.call(rbind.data.frame, nested_sentence)
+structure(parenthetical_sentences)
+
+parenthetical_dply <- as.data.frame(matrix(unlist(nested_sentence), nrow = length(nested_sentence), byrow = TRUE))
+
+
+colnames(parenthetical_dply) <- c("depth", "sentence", "start", "end")
+
+
+
+parenthetical_dply <- parenthetical_dply %>% 
+                      mutate (depth = as.numeric(depth)) %>% 
+                      mutate (start = as.numeric(start)) %>% 
+                      mutate (end = as.numeric (end)) %>% 
+                      select(-sentence)
+
+parenthetical_dply_one <- parenthetical_dply %>% 
+                          filter(depth ==1)
+
+parenthetical_dply_two <- parenthetical_dply %>% 
+                          filter(depth ==2)
+
+parenthetical_dply_three <- parenthetical_dply %>% 
+                            filter(depth ==3)
+parenthetical_dply_four <- parenthetical_dply %>% 
+                            filter(depth ==4)
+```
+
+```{r zero_level_depth}
+
+character_index <-  as.data.frame(c(1:nchar(parentheses_clean$text)) )
+colnames(character_index)    <- "start"               
+
+character_index_full <- character_index %>% 
+                        mutate (end = row_number()) %>% 
+                        mutate( depth = 0, .before = everything())  
+                        
+```
+
+```{r all_depths}
+
+all_depths <- character_index_full %>% 
+              full_join(parenthetical_dply_one, by= "start")  %>% 
+              rename(end = end.x) %>% 
+              full_join(parenthetical_dply_one, by= "end")
+              
+blank_depths <- all_depths %>% 
+                mutate(start.x = ifelse(lead(depth.y!=1),NA,start.x)) %>% 
+                mutate(end = ifelse(lag(depth!=1),NA,end)) 
+
+blank_depths$start.x[1] = 1
+blank_depths$end[nrow(blank_depths)] = nrow(blank_depths)
+                
+
+main_text_breaks <- blank_depths %>%
+  mutate(stops = ifelse(!is.na(start.x), start.x, end)) %>%              drop_na(stops)   %>%
+    select(depth.x, stops) %>%
+  rename(depth = depth.x) %>%
+  rename(start = stops)
+
+```
+
+
+```{r}
+full_table <- parenthetical_dply %>% 
+              select(-end) %>% 
+              bind_rows(main_text_breaks) %>% 
+              arrange(depth)
+
+```
+
+
+
+```{r parenthetical_length}
+parenthetical_sentences_length <- parenthetical_sentences %>% 
+                                  filter(depth ==1) %>% 
+                                  mutate(word_count = str_count(sentence, "\\S+")) %>% 
+                                summarize(total = sum(word_count)) %>% 
+                                  mutate(percent = total/absalom_length)
+```
+
+
+```{r parenthetical_sentence_branch}
+
+parenthetical_long <- parenthetical_dply %>% 
+                      pivot_longer(2:3,names_to = "stops")
+
+
+#row.names(df1) = NA
+
+#Number of empty rows to insert
+N = 1
+
+#Every N rows after which empty rows should be inserted
+after_rows = 2
+
+
+
+new_table <- do.call(rbind, lapply(split(parenthetical_long, ceiling(1:NROW(parenthetical_long)/after_rows)),
+                      function(a) rbind(a, replace(a[1:N,], TRUE, NA))))
+
+ parentheses_plot <- plot_ly(
+                       full_table,
+                       x= ~start,
+                       y=~depth,
+                       name  = ~depth,
+                       type = 'scatter',
+                       mode= 'scatter',
+                       #line = list(shape = 'spline'),
+                       marker= list(size = 4)
+ )
+
+ 
+parentheses_plot
+
+
+```
+
+
+```{r}
+#This turned out to be a not all that relevant statistic.
+black_white_pre <- dy_events_short %>%
+  filter(SourceTextCode!="AA") %>%
+  filter(Era %in% c("Antebellum (1831-1860)", "Pre-Removal (-1830)")) %>%
+  distinct(CharacterName, .keep_all = TRUE) %>%
+  count(Race) %>%
+  mutate(percent = n / sum(n))
+```
+

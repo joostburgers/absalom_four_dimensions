@@ -1,11 +1,12 @@
 ---
-title: "*Absalom, Absalom!* in Four Dimensions"
+title: '*Absalom, Absalom!* in Four Dimensions'
 author: "Johannes Burgers"
 output:
   html_document:
     theme: yeti
     df_print: paged
-bibliography: "bibliography.bib"
+  word_document: default
+bibliography: bibliography.bib
 ---
 
 ```{r setup, include=FALSE, message = FALSE, warning=FALSE, error=FALSE}
@@ -13,31 +14,30 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning=FALSE, error=FALSE,
 knitr::knit_engines$set(python = reticulate::eng_python)
 ```
 
-
 #### Load Libraries
 
 ```{r load_packages}
 library(reticulate)
 library(tidyverse)
 library(tidytext)
-#library(stringi)
+
 library(scales)
 library(stringr)
 library(plotly)
 library(textstem)
 library(shiny)
 library(lubridate)
-#library(htmlTable)
+
 ```
 
 #### Load texts
 
 ```{r load_text}
 #Read in the text
-absalom_df <- as.data.frame(read_file("absalom_cleaned_to_match_4_30_rev4.txt"))
-colnames(absalom_df) <- "text" 
+absalom_txt <- as.data.frame(read_file("absalom_cleaned_to_match_4_30_rev4.txt"))
+colnames(absalom_txt) <- "text" 
 
-absalom_df <- absalom_df %>% 
+absalom_df <- absalom_txt %>% 
 mutate(text = gsub("[‘’]", "'", text)) %>% 
               unnest_tokens(text, text) %>% 
               summarize(text = str_c(text, collapse = " "))
@@ -55,7 +55,6 @@ absalom_event_sentences <- read_csv("absalom_event_sentences_clean_2021_5_10.csv
 ```{r global_variables}
 absalom_length <- str_count(absalom_df$text, "\\S+")
 ```
-
 
 ```{r absalom_event_word_count}
 event_length <- absalom_event_sentences %>%
@@ -82,16 +81,16 @@ chapter_numbers <- read_csv("chapter_numbers.csv")
 ```
 
 ```{r clean_up_absalom_events}
-#The full table is long and hard to work with. 
+#The full table is long and hard to work with.
 absalom_events_short <- absalom_all_events %>%
-  select(3:8,11, 13, 21:28, 34, 50, 52:54) %>% 
-  mutate(narrator = str_extract(Summary, "(?<=(SOURCE)).+[^]</p>]")) %>% 
-  mutate(narrator = str_replace_all(narrator,":","")) %>% 
-  left_join(event_length, by="EventID") %>% 
-  left_join(chapter_numbers, by = "PageNumber") %>% 
-  left_join(aa_event_dates, by="EventID") %>% 
-  relocate(StartDate, .after = NarrativeStatus) %>% 
-  relocate(EndDate, .after= StartDate)
+  select(3:8, 11, 13, 21:28, 34, 50, 52:54) %>%
+  mutate(narrator = str_extract(Summary, "(?<=(SOURCE)).+[^]</p>]")) %>%
+  mutate(narrator = str_replace_all(narrator, ":", "")) %>%
+  left_join(event_length, by = "EventID") %>%
+  left_join(chapter_numbers, by = "PageNumber") %>%
+  left_join(aa_event_dates, by = "EventID") %>%
+  relocate(StartDate, .after = NarrativeStatus) %>%
+  relocate(EndDate, .after = StartDate)
 ```
 
 ```{r read_all_DY_events}
@@ -100,16 +99,10 @@ dy_events <- read_csv("full_database_2021_5_11.csv")
 ```
 
 ```{r clean_up_all_events}
-dy_events_short <- dy_events %>% 
-                    select(1:11, 21:27, 50, 52:54)
-
-
+dy_events_short <- dy_events %>%
+  select(1:11, 21:27, 50, 52:54)
 ```
 
-```{r load_race_words}
-#Read in the race words
-#race_words <- read_csv("race_words.csv")
-```
 
 #### Load Chart Vars
 
@@ -118,6 +111,9 @@ dy_events_short <- dy_events %>%
 
 #This is where you create your own custom color palette for the traces.
 faulkner_colorway = c("#132C53","#F27A18","#ae0700","#79b473","#38726c","#76bed0","#6b2d5c","#448b2d","#e6d812")
+
+faulkner_colorway_bw = c("#999999", "#777777",	"#555555", "#333333",	
+"#111111")
 
 #This controls the background color for the entire chart. Probably best left white.
 faulkner_paperbackground = c('rgba(255,255,255,0)')
@@ -133,9 +129,8 @@ m <- list(l = 50, r = 50, b = 50, t = 50, pad = 4)
 
 fig_caption <- "font-family: 'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif; font-weight: normal; font-size:90%"
 
-plot_font <- list(
-  family = "'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif",
-  size = 14,
+plot_font <- list(family = "'Playfair Display','Helvetica Neue',Helvetica,Arial,sans-serif",
+  size = 12,
   color = '#363636')
 ```
 
@@ -249,14 +244,6 @@ black_white_all <- dy_events_short %>%
   distinct(CharacterName, .keep_all = TRUE) %>%
   count(Race) %>%
   mutate(percent = n / sum(n))
-
-#This turned out to be a not all that relevant statistic.
-black_white_pre <- dy_events_short %>%
-  filter(SourceTextCode!="AA") %>%
-  filter(Era %in% c("Antebellum (1831-1860)", "Pre-Removal (-1830)")) %>%
-  distinct(CharacterName, .keep_all = TRUE) %>%
-  count(Race) %>%
-  mutate(percent = n / sum(n))
 ```
 
 ```{r count_char}
@@ -264,7 +251,6 @@ char_count_AA <- absalom_events_short %>%
   distinct(CharacterName, Race) %>%
   count(Race)  %>%
   mutate(percent = n / sum(n))
-              
 ```
 
 He does not mirror this ratio in his fiction though. If we look at all `r comma(all_characters)` characters, there are significantly more White characters, `r comma(black_white_all$n[10])` (`r percent(black_white_all$percent[10])`) than there are Black characters `r comma(black_white_all$n[2])` (`r percent(black_white_all$percent[2])`). The only other racial group are the `r comma(black_white_all$n[4])` Native Americans who appear sporadically across the fiction and make up only (`r percent(black_white_all$percent[4])`) of the characters. Thus, even though much of Faulkner's work explores race, it does so from a decidedly White perspective. There is little room for characters who are not white, and even less room for characters like Sutpen's first wife, Charles Bon, Bon's "octoroon" wife, Clytemnestra, Charles Etienne de Saint Valery Bon, and Jim Bond, all of whom have Black and White ancestry. They only constitute `r percent(black_white_all$percent[6])` of Yoknapatawpha's larger social world and `r percent(char_count_AA$percent[4])` in *Absalom, Absalom!*. These characters disrupt the putatively stable racial categories of Native American, Black, and, especially, White that make up the unbalanced demography of Yoknapatawpha. No wonder then that Judith's possible marriage to someone outside of this rigid social order would be a source of anxiety for the Sutpen family.
@@ -303,7 +289,7 @@ character_appearances <- absalom_events_short %>%
       "Charles Etienne Saint-Valery Bon",
       "Jim Bond",
       "Thomas Sutpen",
-      	"Mrs. Charles Bon|Octoroon Mistress",
+      "Mrs. Charles Bon|Octoroon Mistress",
       "Mrs. Thomas Sutpen(1)"
     )
   ) %>%
@@ -324,7 +310,6 @@ Sutpen_events <- absalom_events_short %>%
 Sutpen_unique_all <- absalom_events_short %>%
   semi_join(Sutpen_events, by = "EventID") %>%
   filter(PresentMentioned == "Present") %>%
-  #distinct(CharacterName, .keep_all = TRUE) %>%
   filter(!CharacterName %in% c("Thomas Sutpen","Judith Sutpen", "Henry Sutpen", "Charles Bon", "Clytemnestra")) %>% 
   group_by(Class) %>% 
   summarise(total_words = sum(event_words)) %>% 
@@ -334,7 +319,6 @@ Sutpen_unique_all <- absalom_events_short %>%
 Sutpen_with_upper_class <- absalom_events_short %>%
   semi_join(Sutpen_events, by = "EventID") %>%
   filter(PresentMentioned == "Present") %>%
-  #distinct(CharacterName, .keep_all = TRUE) %>%
   filter(!CharacterName %in% c("Thomas Sutpen","Judith Sutpen", "Henry Sutpen", "Charles Bon", "Clytemnestra")) %>% 
   filter(Class =="Upper Class") %>% 
   group_by(LocationTitle) %>% 
@@ -741,10 +725,10 @@ Visually, it is useful to imagine the S curves as continuous undulations of the 
 Following this metaphor, Sutpen's arrival is the pebble that ripples through the history of Yoknapatawpha. The narrators each describe the subsequent history from in their own way, but since there is such a confluence of events it becomes hard to separate one from the other. In effect, the characters are buoyed by the present, but it is impossible to tell what specific part of the past they are floating on as the entire displacement of the past makes the present possible.
 
 ```{r narrators_distinct}
-narrators_distinct <- absalom_events_short %>% 
-                      separate_rows(narrator, sep=",") %>% 
-                      distinct(narrator)  %>% 
-                        nrow()
+narrators_distinct <- absalom_events_short %>%
+  separate_rows(narrator, sep = ",") %>%
+  distinct(narrator)  %>%
+  nrow()
 ```
 
 Another way to think about the relationship between the lives of the narrators and the communal story of Sutpen is a commentary on the nature of historical inquiry. While it may seem that by the end of the narrative, the entire sordid history is dredged up, nothing could be farther from the truth. The narrative introduces so many overlapping and contradictory sources of information that it is hard to distinguish truth from falsehood. There are no fewer than `r narrators_distinct` unique sources of information such as major narrators like Rosa and Mr. Compson, but also artifacts such as Bon's letter, and town gossip that appears to come from nowhere but shapes the perceptions of each character.
@@ -760,8 +744,8 @@ narrators <- absalom_events_short %>%
   group_by(narrator) %>%
   summarize(word_total = sum(event_words)) %>%
   mutate(narrator = ifelse(word_total < 1910, "Other", narrator)) %>%
-  mutate(narrator = str_trim(narrator)) %>% 
-  mutate(percent = word_total/sum(word_total))
+  mutate(narrator = str_trim(narrator)) %>%
+  mutate(percent = word_total / sum(word_total))
 ```
 
 Unlike Faulkner's other texts though, these sources of information are not necessarily distinct from one another. Famously, Shreve and Quentin's voice starts to merge towards the end of the novel. The focus on this section tends to overshadow the fact that much of the novel is being being reconstituted by its narrators through several different sources simultaneously. Recounting his life story in 1834, Sutpen tells Quentin's grandfather plainly, "So I went to the West Indies" (193), which Quentin repeats to Shreve in 1910. Sutpen, Quentin's grandfather, and Quentin are all sources of the information, even if it seems implausible that this would be a verbatim transmission. Doing so means believing that Quentin remembers exactly what his grandfather said at an unspecified previous date, and that his grandfather, in turn, remembered a conversation he had at least seventy years previous late at night while drinking heavily. This is doubtful.
@@ -791,23 +775,18 @@ The most prominent source of information is Quentin's father (`r percent(narrato
 
 ### "it struck, word by word, the resonant strings of remembering"
 
-An analysis of characters, locations, and events pulls *Absalom, Absalom!* in different directions, none of which lead to a unified interpretation. One thing that ties them all together is language; each entity in the text is woven together through Faulkner's intricate prose. Indeed, a number of critics have taken this approach and pointed out that Faulkner's use of language in *Absalom, Absalom!* is blank, blank, blank. Stylistic analysis reveals something quite contradictory: the language is simultaneously unique and unremarkable.
+Characters, locations, and events do not exist independently in a text, they are all embedded in language. To state the obvious, authors tell stories through language. Though *Absalom, Absalom!* is certainly a story, it is as much about the telling as it is about the tale. If Faulkner's prose can seem impenetrable it is because he plays with language so much that it draws attention to itself. Indeed, a number of critics have taken this approach and pointed out that Faulkner's use of language in *Absalom, Absalom!* is blank, blank, blank. Pushing these insights further, computational analysis suggests that the Faulkner's language is one that resists the notion that a story can every be fully told.
 
 ```{r sentence_length}
-#parentheticals..
-absalom_txt <-
-  as.data.frame(read_file("absalom_cleaned_to_match_4_30_rev4.txt"))
-colnames(absalom_txt) <- "text"
 
 absalom_clean <- absalom_txt %>% 
 mutate(text = gsub("[,\\!\\?\\.](?=[^’‘]*’[\\s—-])"," ",text, perl=TRUE))
 
-write_file(absalom_clean$text, "clean_text.txt")
 
 #Regex explained:
 #[,\\!\\?\\.] find any of !,?.
 #(?=[^’‘] not followed by curly quote. The closing curly quote is counterintuitive here, but it helps exclude 's as in Sutpen's. Instead, we want all curly quotes followed with a white space \s: 
-#*’[\\s—-]) the en and em dash are there because sometimes these can abut the closing curly quote.
+#*’[\\s—-]) the en and em dash are there because sometimes these can abutt the closing curly quote.
 
 absalom_sentences <- absalom_clean %>%
   unnest_regex(word, text, "[.?!]") %>%
@@ -821,27 +800,27 @@ absalom_sentences_long <- absalom_sentences %>%
   nrow()
 ```
 
-The most noted stylistic feature of *Absalom, Absalom!* is the length of the sentences. In fact, according to the 1983 *Guinness Book of World Records* it holds the dubious record of the longest sentence in the English language - 1,300 words (McWhirter 228). The claim is both absurd because it is an achievement that could easily be bested (PINKER, 83), and inaccurate because Faulkner himself beat his own "record" with a 1,600 word sentence in *Go Down, Moses* (Fargnoli 102). Faulkner's long sentences are more than a matter of trivia, however; they quite literally stretch the very concept of the sentence, by extension the English language. It is a measure of some comfort that they cause trouble for computers and humans alike. Normally, computing sentence length in a text is a very simple procedure. With *Absalom, Absalom!*, it is difficult to detect whether a sentence has ended, because there are so many parenthetical phrases and embedded quotations that follow Faulkner's own idiosyncratic structure. It might be more accurate to say that the novel is a collection of clauses occasionally interrupted by punctuation. Given this, the computed average sentence length of `r round(absalom_sentences_mean$mean_length,0)` is therefore at best a rough measure. It is clear though, that they are significantly longer than other works in English written in the 1930s, which are only about 13 words per sentence (RUDNICKA 233). The average masks the sheer number of long sentences in the text, `r absalom_sentences_long` sentences exceed 100 words.
+#### Sentences
 
-For Faulkner, these long sentence are more than mere rhetorical pyrotechnics, but are an attempt to capture the experience of living. Asked in an interview about why he wrote such long sentences, Faulkner contends that there is no such thing as "was" because everyone brings their past with them. His long sentences are a way to capture this sensation, "a man, a character in a story at any moment of action is not just himself as he is then, he is all that made him, and the long sentence is an attempt to get his past and possibly his future into the instant in which he does something" [Faulkner 1965]. In a sense, the prose complements the narrative structure, which also sees the past continuously returning.
+The most infamous stylistic feature of *Absalom, Absalom!* is certainly the length of the sentences. In fact, according to the 1983 *Guinness Book of World Records* it holds the dubious record of the longest sentence in the English language - 1,300 words (McWhirter 228). The claim is both absurd because it is an achievement that could easily be bested (PINKER, 83), and inaccurate because James Joyce's *Ulysses* certainly has longer sentences, while Faulkner himself beat his own "record" with a 1,600 word sentence in *Go Down, Moses* (Fargnoli 102). Faulkner's long sentences are more than a matter of trivia, however; they quite literally stretch the very concept of the sentence, and by extension the English language. It is a measure of some comfort that they cause trouble for computers and humans alike. Normally, computing sentence length in a text is a very simple procedure. With *Absalom, Absalom!*, there are so many parenthetical phrases and embedded quotations that it is difficult to detect whether a sentence has ended. It might be more accurate to say that the novel is a collection of clauses occasionally interrupted by punctuation. Given this, the computed average sentence length of `r round(absalom_sentences_mean$mean_length,0)` is therefore at best a rough measure. What is clear though, is that this is significantly longer than other works in English written in the 1930s, which use only about 13 words per sentence (RUDNICKA 233). The average masks the sheer number of long sentences, `r absalom_sentences_long` sentences exceed 100 words.
+
+For Faulkner, these long sentence are more than rhetorical pyrotechnics, they try to capture how the past continuously intrudes upon the present. Asked in an interview about why he wrote such long sentences, Faulkner contends that there is no such thing as "was" because everyone brings their past with them. His long sentences are a way to capture this sensation, "a man, a character in a story at any moment of action is not just himself as he is then, he is all that made him, and the long sentence is an attempt to get his past and possibly his future into the instant in which he does something" [Faulkner 1965]. In a sense, the prose complements the narrative structure, which also sees the past continuously returning.
 
 ```{r parentheticals}
 
-#create a clean version of the text without punctuation except parentheses. #NOTE: The amount of parentheses in the text is uneven. An extra one was added at the end of chapter 6.
+#NOTE: The amount of parentheses in the text is uneven. An extra one was added at the end of chapter 6.
 parentheses_file <-
-  as.data.frame(read_file("faulkner_absalom_parentheses.txt"))
+      as.data.frame(read_file("faulkner_absalom_parentheses.txt"))
 colnames(parentheses_file) <- "text"
 
 parentheses_clean <- parentheses_file %>%
-  mutate (text = gsub("[\t\n\r]", "", text, perl = TRUE)) %>%
-  mutate (text = gsub("[—]", "", text, perl = TRUE)) %>%
-  mutate(text = gsub("[‘’'\"\\“\\”\\.\\?\\!\\,]", "", text, perl = TRUE))
-
+  mutate (text = gsub("[\t\n\r]", "", text, perl = TRUE)) 
+ 
+#This string is used for the Python script
 absalom_string <- parentheses_clean$text
 ```
 
 ```{python nested_sentences}
-
 #This code snippet converts all of the nested parentheses into a list object. Full credit goes to: https://stackoverflow.com/users/68063/gareth-rees
 
 def parenthetic_contents(string):
@@ -857,61 +836,186 @@ def parenthetic_contents(string):
 py_nested_sentences = list(parenthetic_contents(r.absalom_string))
 ```
 
-
 ```{r get_python_value}
+#Create Parenthetical_df for processing this. 
+#Convert the Python list object into a 2 vector data frame. This gave me no end of trouble because the vector kept turning into a list. Could not find a tidy function for this.
+
 nested_sentence <- py$py_nested_sentences
 
-names(nested_sentence[[1]]) <- c("depth", "sentence", "start", "end")
+parenthetical_df <-
+  as.data.frame(matrix(
+    unlist(nested_sentence),
+    nrow = length(nested_sentence),
+    byrow = TRUE
+  ))
 
-parenthetical_sentences <- do.call(rbind.data.frame, nested_sentence)
-
+colnames(parenthetical_df) <- c("depth", "sentence", "start", "end")
 ```
 
-```{r zero_level_depth}
+```{r create_parenthetical_levels}
+#Clean up table
+parenthetical_level <- parenthetical_df %>%
+  select(-sentence) %>%
+  mutate(across(.cols = everything(),  ~ as.numeric(.)))
 
-character_index <-  as.data.frame(c(1:nchar(parentheses_clean$text)) )
-colnames(character_index)    <- "start"               
-
-character_index_full <- character_index %>% 
-                        mutate (end = 0) %>% 
-                        mutate (sentence = " ", .before= everything()) %>%  
-                        mutate( depth = 0, .before = everything())
 ```
 
 ```{r all_depths}
+#get the values from parenthetical level_one. 
 
-all_depths <- parenthetical_sentences %>% 
-              bind_rows(character_index_full)
+parenthetical_level_one <- parenthetical_level %>%
+  filter(depth == 1)
 
+#Get all start end blocks "outside" level one (start-1, end+1)
+#Pivot into one column so start and end alternate
+# 1 and total absalom lenght
+#arrange by start
+
+parenthetical_main_text <- parenthetical_level_one %>%
+  mutate (depth = 0) %>%
+  mutate (start = start - 1) %>%
+  mutate (end = end + 1) %>%
+  pivot_longer(2:3, values_to = "start") %>%
+  select (-name) %>%
+  add_row(depth = 0, start = 1) %>%
+  add_row(depth = 0, start = str_length(absalom_string)) %>%
+  arrange(start)
 ```
 
+```{r combine_parenthetical_levels}
+#pivot start end long, and drop start_stop values
+parenthetical_long <- parenthetical_level %>%
+  pivot_longer(2:3, names_to = "stops", values_to = "start") %>%
+  select(-stops)
+
+#add main text parenthetical to long parenthesis table
+parenthetical_all <- parenthetical_long %>%
+  bind_rows(parenthetical_main_text) 
+```
+
+```{r stagger_parenthetical_levels}
+#Number of empty rows to insert
+N = 1
+
+#Every N rows after which empty rows should be inserted
+after_rows = 2
+
+parenthetical_all_staggered <- do.call(
+  rbind, 
+        lapply(
+                split(parenthetical_all,  
+                ceiling(1:NROW(parenthetical_all)/after_rows)),
+                function(a) rbind(a, replace(a[1:N,], TRUE, NA))
+               )
+        )
+
+parenthetical_all_staggered <- parenthetical_all_staggered %>%
+  remove_rownames() %>%
+  mutate(depth = ifelse(is.na(depth), lag(depth), depth))
+```
+
+```{r chapter_index}
+#Create a chapter index of when each character occurs. This is useful for keeping track of the data when plotting it.
+
+##Unnest everything by chapter and add row numbers for chapters. Then create a helper column to get the string lenght of each segment. Then get the cummulative sum with a lag of 1.
+
+chapter_index <- parentheses_clean %>%
+  unnest_regex(chapter_text, text , "Chapter \\d") %>%
+  mutate(chapter = row_number()) %>%
+  mutate(length = str_length(chapter_text)) %>% 
+  mutate(chapter_marker = cumsum(lag(length,default=1)))
+```
+
+```{r longest_break}
+#find the opening phrases of the longest break for annotation. 
+
+parenthetical_longest_break <- parenthetical_df %>%
+  mutate(across(c(1, 3:4),  ~ as.numeric(.))) %>%
+  mutate (gap = end - start) %>%
+  arrange(depth, desc(gap)) %>%
+  group_by(depth) %>%
+  top_n(gap, n= 1) %>%
+  mutate (sentence = paste("(", sentence, ")", sep = "")) %>%
+  mutate (sentence = ifelse(
+    str_count(sentence, "\\s") > 1,
+    paste(word(sentence, 1, 7), "...", sep = ""),
+    sentence
+  ))
+```
 
 ```{r parenthetical_length}
-parenthetical_sentences_length <- parenthetical_sentences %>% 
-                                  filter(depth ==0) %>% 
-                                  mutate(word_count = str_count(sentence, "\\S+")) %>% 
-                                summarize(total = sum(word_count)) %>% 
-                                  mutate(percent = total/absalom_length)
+parenthetical_sentences <- parenthetical_df %>%
+  select(-start,-end) %>%
+  filter(depth == 1) %>%
+  mutate(word_count = str_count(sentence, "\\S+")) %>% 
+  group_by(depth) %>% 
+  summarize(total = sum(word_count)) %>%
+  mutate(percent = total / absalom_length)
 ```
 
+It is rare that the typography of a text is remarkable, but here too *Absalom, Absalom!* distinguishes itself. Faulkner uses up what can only be considered a life time's supply of parentheses - `r str_count(absalom_string, "[()]")` total. These parenthetical statements are used to elucidate, complicate, contradict, and trouble, the "main narrative." They are so frequent and lengthy that a full `r percent(parenthetical_sentences$percent,0)` of the text is enframed. Faulkner adds a layer of complexity to this by "nesting" parentheses. He does this throughout the text, but most intensely in Chapter 6, where the majority of the chapter is actually a parenthetical. Both the frequency and the nesting have been represented visually through the figure below.
 
-```{r parenthetical_sentence_branch}
+```{r plot_parentheses, out.width="768px",  out.height="250px" }
 
-# #parentheses_plot <- plot_ly(
-#                       all_depths,
-#                       x= ~start,
-#                       y= ~depth
-# )
+plot_parentheses <- plot_ly(
+  parenthetical_all_staggered,
+  x = ~ start,
+  y =  ~ depth,
+  name  = ~ depth,
+  type = 'scatter',
+  mode = 'lines+markers',
+  marker = list(size = 4),
+  line = list(width = 1, dash = "dot"),
+    width = 768,
+    height = 250
+)
 
+plot_parentheses <- plot_parentheses %>%
+  layout(
+    title = list(text = "Parentheses Nesting Levels in <i>Absalom, Absalom!</i>"),
+    xaxis = list(
+      gridwidth = 1,
+      zeroline = FALSE,
+      showline = FALSE,
+      tickmode = 'array',
+      tickvals = chapter_index$chapter_marker,
+      ticktext = chapter_index$chapter,
+      title = list(text = "Chapter")
+    ),
+    yaxis = list(
+      title = list(text = "Nesting Level"),
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showline = FALSE,
+      linewidth = 0,
+      tickmode = 'array',
+      tickvals = c(0, 1, 2, 3, 4),
+      ticktext = c("Main Text", "1: ()", "2: (())", "3: ((()))", "4: (((())))")
+    ),
+    colorway = faulkner_colorway_bw,
+    autosize = FALSE
+  )
 
+plot_parentheses <- plot_parentheses %>%
+  add_annotations(
+    x = parenthetical_longest_break$start,
+    y = parenthetical_longest_break$depth,
+    text = parenthetical_longest_break$sentence,
+    xref = "x",
+    yref = "y",
+    yshift = 15,
+    xanchor = "left",
+    showarrow = FALSE,
+    font = plot_font
+)
 
-#parentheses_plot
+plot_parentheses
 
-
+tags$h6(HTML("<i>Figure 8:</i> Parenthesis usage in <i>Absalom, Absalom!</i>. It is remarkable that Faulkner nests narrative three even four levels deep."), style =fig_caption)
+tags$br()
 ```
 
-
-	 
+The figure shows several salient features of the text purely based on its typography. First, at bottom is the "main text", the text that is not parenthetical. To some extent this appears indistinguishable from the first nesting level: (). In part, this is simply the consequence of trying to cram too many data points into a small space, but it also demonstrates the ubiquity of parenthetical phrases. With some regularity, this first level nesting is further enframed with second level nesting: (()). It is in Chapter 6 though that the text becomes truly overwhelming. In the first couple of pages, it jumps to level one nesting, then second level, and even third ((())), until finally at the apex of the chart Quentin is nested four levels deep, or more colloquially, he is an aside to an aside to an aside to an aside. It is likely a happy accident that Quentin's name is the only one that is so deeply nested, it is certainly unreasonable to expect any reader to discover this Easter egg without considerable effort. Nevertheless, to find Quentin dead-center in the text at the deepest parenthetical level reinforces how much *Absalom, Absalom!* is about him as it is about the Sutpen's. He is always there structuring in haunting the text in his own way.
 
 ```{r unique_words}
 unique_words <- absalom_df %>%
