@@ -2,11 +2,14 @@
 title: '*Absalom, Absalom!* in Four Dimensions'
 author: "Johannes Burgers"
 output:
+  word_document:
+    reference_docx: "absalom_template.docx"
   html_document:
     theme: yeti
     df_print: paged
-  word_document: default
-bibliography: bibliography.bib
+bibliography: absalom_bibliography.bib
+csl: modern-language-association.csl
+always_allow_html: true
 ---
 
 ```{r setup, include=FALSE, message = FALSE, warning=FALSE, error=FALSE}
@@ -14,23 +17,19 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning=FALSE, error=FALSE,
 knitr::knit_engines$set(python = reticulate::eng_python)
 ```
 
-#### Load Libraries
-
 ```{r load_packages}
 library(reticulate)
+library(webshot)
 library(tidyverse)
 library(tidytext)
-
 library(scales)
 library(stringr)
 library(plotly)
-library(textstem)
+#library(textstem)
 library(shiny)
 library(lubridate)
 
 ```
-
-#### Load texts
 
 ```{r load_text}
 #Read in the text
@@ -49,8 +48,6 @@ absalom_event_sentences <- read_csv("absalom_event_sentences_clean_2021_5_10.csv
 #This file was created by recomposing the text based on the "First Words" column and matching the text segments with each event using a copy of the text. As this process is quite involved it has been branched out into a separate file: absalom_sentiment_text_processing. Full details on the process can be viewed there.
 
 ```
-
-#global variables
 
 ```{r global_variables}
 absalom_length <- str_count(absalom_df$text, "\\S+")
@@ -95,7 +92,6 @@ absalom_events_short <- absalom_all_events %>%
 
 ```{r read_all_DY_events}
 dy_events <- read_csv("full_database_2021_5_11.csv")
-
 ```
 
 ```{r clean_up_all_events}
@@ -103,10 +99,7 @@ dy_events_short <- dy_events %>%
   select(1:11, 21:27, 50, 52:54)
 ```
 
-
-#### Load Chart Vars
-
-```{r load_color_scheme, echo=FALSE}
+```{r load_chart_styling, echo=FALSE}
 #Page styling
 
 #This is where you create your own custom color palette for the traces.
@@ -138,27 +131,23 @@ plot_font <- list(family = "'Playfair Display','Helvetica Neue',Helvetica,Arial,
 
 ### Overview
 
-The following piece uses several techniques available to standard CL analysis, alongside a more complex analysis exclusively available to practitioners who have access to the [*Digital Yoknapatawpha*](http://faulkner.iath.virginia.edu/) data set. These different techniques have been split into their own sections.
+*Absalom, Absalom!* is not a likeable text. Its structure is overwrought, its characters are inscrutable, and the prose is nearly impenetrable. There is also no shortage digressions -- parenthetical, italicized, and otherwise -- that force even the most forensic reader to return and re-read that which has transpired only a few lines earlier. Early on, in what could serve as a description of the narrative writ large, Mr. Compson refers to the dramatis personae of the Sutpen tragedy as "a chemical formula" that is barely legible. The formula is inert. When you bring all the characters together "nothing happens," and so you "re-read, tedious and intent, poring, making sure that you have forgotten nothing, made no miscalculation; you bring them together again and again nothing happens" (80). This sensation of mixing a formula that produces no reaction might be familiar to some readers. Perhaps the formula feels inert because the science is all wrong. The novel is, if anything, alchemical. Its power comes from its gnostic devotion to the *why,* which overshadows the more mundane matter of the *what*.
 
--   **Part 1: Characters**
+Like Sutpen's own divaricated progenerations, the text's difficulty has engendered multiple branches of critical interpretation. Although divergent in their aims and illuminating in their own ways, they are unified in their approach. Each relies on a methodology that builds evidence for a particular interpretation through a close-reading, supported by varying degrees of biographical, cultural, and historical context. As an alternative and complement to this approach, this essay deploys a methodology broadly described through the catch-all term: digital humanities. Generically speaking, in digital humanities research scholars leverage the computational power of digital technologies to perform analyses that would be very difficult to do using traditional humanities methods. Specifically, the work here draws on the database and digital tools available through *Digital Yoknapatawpha* (*DY)*. Hosted by the University of Virginia, *DY* is a resource for students and scholars of William Faulkner. The team has encoded all of the characters, locations, and events in Faulkner's Yoknapatawpha fictions. Through the site, users can study "deep atlases" of each text, explore archival material, listen to audio recordings of Faulkner, perform powerful relational searches, and analyze the texts using advanced data visualizations.[^1]
 
--   **Part 2: Locations**
+[^1]: As the site is necessarily a visual medium, not all of its possibilities translate well to print. Readers are encouraged to visit the site and the custom visual essay created for this piece at: PLACE HOLDER FOR VISUAL ESSAY. The data presented here statistical form, which only differs in representation, but not in substance from the digital form.
 
--   **Part 3: Events**
+Using *DY* and its rich data sets, it is possible to investigate *Absalom, Absalom!* from multiple perspectives simultaneously. While it might be tempting to use the database to "solve" the mysteries of the text -- to make the formula react -- such an approach glosses over the highly interpretive nature of textual encoding, and, more to the point, contradicts *Absalom, Absalom!*'s ambivalence about ever truly knowing a story. Instead, a more productive approach is to use the database to show how the meanings of the text can be dissonant. To borrow a common computer programming idiom, this dissonance is a feature, not a bug. In this spirit, this essay has not been organized around a central thesis that makes a claim about *Absalom, Absalom!*, instead it consists of four loosely connected vignettes structured around different types of data visualization. Each piece covers a separate facet of the novel: characters, locations, events, and language. [^2] While each vignette could, arguably, be read separately, the themes echo each other: characters and race, locations and the plantation system, events and history, language and the past. These themes are still as resonant today as they were in 1936. Indeed, current conversations about America's racial legacy are as much about history's refusal to stay in the past, as they are about finding the language to speak about that legacy in the present. *Absalom, Absalom!* suggests that those discussions do not not end, but are, in fact, an end in and of themselves.
 
--   **Part 4: Text**
-
-    The *DY* database provides insight into what characters are where and at what time. Using this database, it is possible to reconstruct the language surrounding people, places, and times.[^1]
-
-[^1]: All of the data was generated in the R programming language using the `tidyverse` suite of packages for the calculations and the `plotly` library for the graphics. The full repository is available at <https://github.com/joostburgers/absalom_sentiment_analysis> Due to copyright issues the repository does not include the *Absalom, Absalom!* text file used for data analysis. The text file used for text analysis was the 2011 Vintage Edition [@faulkner2011], which corresponds with the 1990 edition we used for *DY*
+[^2]: All of the data was generated in the R programming language using the `tidyverse` suite of packages for the calculations and the `plotly` library for the graphics. The full repository is available at <https://github.com/joostburgers/absalom_four_dimensions> Due to copyright issues the repository does not include the *Absalom, Absalom!* text file used for data analysis. The text file used for text analysis was the 2011 Vintage Edition [@faulkner2011], which corresponds with the 1990 edition we used for *DY*.
 
 ## Part 1: Characters
 
 ### "money, a house, a plantation, slaves, a family --- incidentally of course, a wife"
 
-A common description of *Absalom, Absalom!* is that it is not a whodunit, but rather a why-done-it. Within the first several pages, the basic facts of the case are laid out: Henry Sutpen shoots his sister's fiance, Charles Bon, on the day of their wedding. The remainder of the narrative is dedicated to unspooling the various lines of inquiry into why Henry was motivated to shoot Bon. The answer is integral to the Sutpen family story, and serves as a synecdoche of the larger history of slavery in America. In many respects then, *Absalom, Absalom!* is a character study. The narrative opens with a few basic details about the Sutpen family, which are then unpacked and interpreted by the various narrators based on their own motivated reasoning.
+A well-worn quip about *Absalom, Absalom!* is that it is not a whodunit, but rather a why-done-it. Within the first several pages, the basic facts of the case are laid out: Henry Sutpen shoots his sister's fiance, Charles Bon, on the day of their wedding. The remainder of the narrative is dedicated to unspooling the various lines of inquiry into why Henry was motivated to shoot Bon. The answer is integral to the Sutpen family story, and serves as a commentary on the history of slavery in America more generally. In many respects, then, *Absalom, Absalom!* is a character study of the Sutpen family.
 
-To understand all of these various social relations, it is useful to think through not only the individual characters, but the larger demography of the text. *Digital Yoknapatawpha* is particularly useful in this regard. Not only can users pull up the biographies of each individual character, it is also possible to aggregate and group the data to render a more detailed portrait of the various characters in relation to one another.
+To understand the various family dynamics, it is useful to think through the individual characters, and also the larger demography of the text. *Digital Yoknapatawpha* is particularly useful in this regard. Not only can users pull up the biographies of each individual character, it is also possible to aggregate and group the data to render a more detailed portrait of the various characters in relation to one another.
 
 ```{r general_overview}
 #Unique Characters
@@ -189,7 +178,21 @@ Judith_unique <- Judith_unique_all %>%
   filter(Rank %in% c("Peripheral", "Minor")) %>%
   distinct(CharacterName)
 
-#Ration major minor characters DY
+#Events in which Clytie Sutpen is present
+Clytie_events <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>%
+  filter(CharacterName == "Clytemnestra")
+
+#All characters surrounding Clytie
+Clytie_unique_all <- absalom_events_short %>%
+  semi_join(Clytie_events, by = "EventID") %>%
+  filter(PresentMentioned == "Present") %>%
+  distinct(CharacterName, .keep_all = TRUE) %>%
+  filter(CharacterName != "Clytemnestra") %>% 
+  nrow()
+
+
+#Ratio major minor characters DY
 character_ranks <- dy_events_short %>%
   filter(PresentMentioned == "Present") %>%
   distinct(CharacterName, .keep_all = TRUE) %>%
@@ -222,19 +225,17 @@ Thomas_unique_all <- absalom_events_short %>%
   distinct(CharacterName, .keep_all = TRUE) %>%
   filter(CharacterName != "Thomas Sutpen") %>% 
   nrow()
-                  
 ```
 
-Although much of the text is heavily focused on the Sutpen family, its world is actually peopled by `r nrow(unique_characters)` unique characters. The overwhelming majority of these (`r percent(peripheral_characters$percent[2]+peripheral_characters$percent[3])`) are peripheral or minor characters. While the abundance of minor characters in *Absalom, Absalom!* comports with the ratio of major and minor characters in Faulkner's texts more generally, it is an important reminder that while the Sutpens may live in seclusion, they are not isolated from the larger world.[^2] Barring Clytemnestra, Judith is probably the most sheltered of the Sutpen children. Yet, even she makes the 12 mile journey to town "twice and sometimes three times a week" during her youth (54). Over the course of the novel she appears in events with `r nrow(Judith_unique_all)` different characters, `r nrow(Judith_unique)` of whom are minor or peripheral. Beyond Judith, the men on the Sutpen plantation have far richer social connections, Thomas Sutpen meets `r Thomas_unique_all` characters, while Henry is connected to different `r Henry_unique_all` characters. Though certainly an eccentric family, they are deeply woven into Jefferson's social fabric. This relationship between the Sutpens and the wider world helps contextualize the pressure they would have faced to conform to community mores.
+Although much of the text is heavily focused on the Sutpen family, its world is actually peopled by `r nrow(unique_characters)` unique characters. The overwhelming majority of these (`r percent(peripheral_characters$percent[2]+peripheral_characters$percent[3])`) are peripheral or minor characters. This abundance of minor characters in *Absalom, Absalom!* comports with the ratio of major and minor characters in Faulkner's texts more generally, and is an important reminder that while the Sutpens may appear to live in seclusion, they are not isolated from the larger world.[^3] In keeping with the gender norms of the period, the women were certainly more confined to the domestic space. Though Judith occasionally travels to Memphis, she mostly travels the 12 mile journey to town "twice and sometimes three times a week" during her youth (54). Nevertheless, over the course of the novel she appears in events with `r nrow(Judith_unique_all)` different characters, `r nrow(Judith_unique)` of whom are minor or peripheral. Clytemnestra -- Sutpen's daughter conceived through his sexual exploitation of an enslaved woman -- is probably the most marginalized person in the text, but still she appears with `r Clytie_unique_all` other characters, even if none of the cooccurrrences speak to any type of social life outside of serving the Sutpen family. The men on the Sutpen plantation have far more robust social connections, Thomas Sutpen meets `r Thomas_unique_all` characters, while Henry is connected to different `r Henry_unique_all` characters. Though certainly an eccentric family, they are reluctantly ensnared into Jefferson's social fabric. This relationship between the Sutpens and the wider world helps contextualize the pressure they would have faced to conform to community mores. Sutpen's Hundred may have been vast, but it was not an island.
 
-[^2]: The overwhelming majority of characters in Faulkner's texts, and likely most novels are minor (`r percent(character_ranks$percent[2])`). Major (`r percent(character_ranks$percent[1])`) or secondary (`r percent(character_ranks$percent[4])`) characters necessarily make up a much smaller share, because the narrative can only focus so much attention on particular characters. Peripheral characters make up a small share as well peripheral characters (`r percent(character_ranks$percent[3])`), but the functional difference between these characters and minor characters is negligible.
+[^3]: The overwhelming majority of characters in Faulkner's texts, and likely most novels are minor (`r percent(character_ranks$percent[2])`). Major (`r percent(character_ranks$percent[1])`) or secondary (`r percent(character_ranks$percent[4])`) characters necessarily make up a much smaller share, because the narrative can only focus so much attention on particular characters. Peripheral characters make up a small share as well peripheral characters (`r percent(character_ranks$percent[3])`), but the functional difference between these characters and minor characters is negligible.
 
-The potential source of conflict with the community is, of course, Judith's desire to marry Charles Bon who may be her half-brother and may also be part Black. It almost goes without saying that incest would have caused widespread indignation at any point in history, even if Henry tries to rationalize it to himself by claiming, "There was that Lorraine duke named John something that married his sister" (273). It might be harder to understand why Bon's possible Black ancestry would be more of an issue than incest, especially if he is, by all appearances, White. Quite counterintuitively, incest and "miscegenation" were often seen as two sides of the same coin, as they were both crimes of "blood" (SAKS 71). The fear of White and Black "mixing" was so great that up until Loving vs. Virginia in 1967, the state of Mississippi prohibited "interracial" marriage. The statute was not removed from the state constitution till 1987 (ROMANO 250). Suffice to say, that if Bon's ancestry were ever discovered, it would have provoked community outrage and reprisal just for entering White spaces, let alone trying to marry a White woman.
+The potential source of conflict with the community and society at large is, of course, Judith's desire to marry Charles Bon, a mysterious stranger who may be her half-brother and may also be part Black. It almost goes without saying that incest would have caused widespread indignation at any point in history, even if Henry tries to rationalize it to himself by claiming, "There was that Lorraine duke named John something that married his sister" (273). It might be harder to understand why Bon's possible Black ancestry would be more morally outrageous than incest, especially if he is, by all appearances, White. Quite counterintuitively, incest and "miscegenation" were often seen as two sides of the same coin, as they were both crimes of "blood" [@RN26 71]. The fear of White and Black "mixing" was so great that up until Loving vs. Virginia in 1967, the state of Mississippi prohibited "interracial" marriage. The statute was not removed from the state constitution till 1987 [@RN24 250]. Suffice to say, that if Bon's ancestry were ever discovered, it would have provoked community outrage and reprisal just for his entering White spaces, let alone for trying to marry a White woman. Moreover, the Sutpen family in allowing the marriage to continue would themselves be culpable of aiding and abetting a crime of "blood."
 
-These stark divisions between Black and White are reflected in important but slightly different ways in the basic demographics of the real Lafayette County and Faulkner's fictional Yoknapatawpha. In his thorough historical account of Lafayette, Don Harrison Doyle shows that the ratio of Black (40%) and White (60%) identified people in the county was relatively stable throughout the county's history. There is no room for people who do not fit either category neatly. In his own maps of Yoknapatawpha Faulkner actually flips this ratio and claims that there are 6,298 Whites and 9313 "Negroes."
+These stark divisions of race are reflected in important but slightly different ways in the basic demographics of the real Lafayette County and Faulkner's fictional Yoknapatawpha. In his thorough historical account of northern Mississippi, Don Harrison Doyle shows that the ratio of Black (40%) and White (60%) identified people in the county was relatively stable throughout the county's history. There is no room for people who do not fit either category neatly.
 
 ```{r black_white_ratios}
-
 all_characters <- dy_events_short %>%
   distinct(CharacterName) %>%
   nrow()
@@ -248,12 +249,13 @@ black_white_all <- dy_events_short %>%
 
 ```{r count_char}
 char_count_AA <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>% 
   distinct(CharacterName, Race) %>%
   count(Race)  %>%
-  mutate(percent = n / sum(n))
+  mutate(percent = round(n / sum(n),2))
 ```
 
-He does not mirror this ratio in his fiction though. If we look at all `r comma(all_characters)` characters, there are significantly more White characters, `r comma(black_white_all$n[10])` (`r percent(black_white_all$percent[10])`) than there are Black characters `r comma(black_white_all$n[2])` (`r percent(black_white_all$percent[2])`). The only other racial group are the `r comma(black_white_all$n[4])` Native Americans who appear sporadically across the fiction and make up only (`r percent(black_white_all$percent[4])`) of the characters. Thus, even though much of Faulkner's work explores race, it does so from a decidedly White perspective. There is little room for characters who are not white, and even less room for characters like Sutpen's first wife, Charles Bon, Bon's "octoroon" wife, Clytemnestra, Charles Etienne de Saint Valery Bon, and Jim Bond, all of whom have Black and White ancestry. They only constitute `r percent(black_white_all$percent[6])` of Yoknapatawpha's larger social world and `r percent(char_count_AA$percent[4])` in *Absalom, Absalom!*. These characters disrupt the putatively stable racial categories of Native American, Black, and, especially, White that make up the unbalanced demography of Yoknapatawpha. No wonder then that Judith's possible marriage to someone outside of this rigid social order would be a source of anxiety for the Sutpen family.
+In his own maps of Yoknapatawpha, Faulkner actually flips this ratio and claims that there are 6,298 Whites and 9313 "Negroes." This ratio is not reflected in his fiction though. If we look at all `r comma(all_characters)` characters, there are significantly more White characters, `r comma(black_white_all$n[10])` (`r percent(black_white_all$percent[10])`) than there are Black characters `r comma(black_white_all$n[2])` (`r percent(black_white_all$percent[2])`). The only other racial group are the `r comma(black_white_all$n[4])` Native Americans who appear sporadically across the fiction and make up only (`r percent(black_white_all$percent[4])`) of the characters. Much of Faulkner's work explores race, but it does so from a decidedly White perspective. There is little room for characters who are not White, and even less room for those who have Black and White ancestry. They only constitute `r percent(black_white_all$percent[6])` of Yoknapatawpha's larger social world and `r percent(char_count_AA$percent[3])` in *Absalom, Absalom!*. These characters disrupt the putatively stable racial categories of Native American, Black, and, especially, White that make up the unbalanced demography of Yoknapatawpha. No wonder then that Judith's possible marriage to someone outside of this rigid social order would be a source of anxiety for the Sutpen family.
 
 ```{r weight_count}
 weight_count <- absalom_events_short %>%
@@ -261,14 +263,73 @@ weight_count <- absalom_events_short %>%
   distinct(EventID, Race, event_words) %>%
   group_by(Race) %>%
   summarize(word_total = sum(event_words)) %>%
-  mutate(percent = word_total / sum(word_total))
+  mutate(percent = round(word_total / sum(word_total),2))
 ```
 
-This point is further amplified when character presence is taken into consideration. Using the event data, it is possible to calculate how often a individual character is present in an event and for how long.[^3] By that same token, we can calculate the "screen time" for each different race group in *Absalom, Absalom!*. Quite revealing is the fact that even though they are a demographic minority, characters with heterogeneous ancestry are present in `r percent(weight_count$percent[3])` of the text, and are thereby the second most present characters after White characters (`r percent(weight_count$percent[5])`). One way to read the predominance of these characters is as Faulkner's attempt to trouble the color line. By collapsing the presumed natural boundary between "Black" and "White," Faulkner exposes the very constructedness of those categories. Charles Bon is able to win the affections of Judith and Henry by passing as White, and only when his possible Black ancestry is exposed does he suddenly become a threat. Henry still thinks he is fit to marry Judith after Charles reveals that he has an "octoroon" wife and a child, and even after he discovers Charles is his half-brother. Both bigamy and incest represent a level of moral turpitude that is generally disqualifying for a union, but Henry is willing to look past these. In the end, "it's the miscegenation" that Henry "cant bear" (285). The fact that he has qualms about the possible interracial element to the marriage between his sister and Charles, but ignores others, lays bare the insidiousness of artificial racial designations and how they distort human relationships.
+This point is further amplified when character presence is taken into consideration. Using the event data, it is possible to calculate how often a individual character is present in an event and for how long.[^4] This measure is comparable to how much "screen time" a particular character might get in a movie. The distinction is important. For example, the extraterrestrial being in the movie is *E.T.* represents a demographic count of one, but has a lot of screen time because they are the main character. In *Absalom, Absalom!* the contrast between the the raw demographic count and how long characters are present in events is quite revealing.
 
-[^3]: This was done by counting the number of words by event.
+[^4]: This was done by counting the number of words by event.
 
-Similarly, the text also highlights the constructedness of race through the trajectory of Charles Bon's son with the unnamed "octoroon" wife. Charles Etienne Saint-Valery Bon crosses the color line with a woman disparagingly described as "coal black and ape-like" (166). Like his father, he too is punished for his racial transgressions, and both Black and White see what they want to see. In the company of his soon to be wedded wife, he tells the "negro stevedores and deckhands" that he is not a White man, but as a result they "believed it only the more strongly," and when he tells "white men" that he is a "negro" they believe he "lied in order to save his skin" (167). In both cases, the confrontations end in violence. There is a deep racial irony here. Charles Bon is murdered because it is believed he might not be "fully" White and tries to marry a White woman, and Charles Etienne is met with violence because no one believes he might be part Black and is married to a Black woman. In these two mirror images of father and son, *Absalom, Absalom!* demonstrates the arbitrariness of the color line.
+```{r plot_demography, fig.cap="Figure 1: Demography by raw count and by character presence. The image on the left shows what percentage of each type of character are present in the text. The image on the right shows how often they appear."}
+
+
+plot_demography <- plot_ly()
+
+plot_demography <- plot_demography %>% 
+      add_pie(
+      values =  ~char_count_AA$n,
+    labels = ~ char_count_AA$Race,
+    type = 'pie',
+    name = "Character Count",
+    text = paste(char_count_AA$Race, char_count_AA$percent*100, "%"),
+    textinfo = 'text',
+    domain = list(x=c(.1,.45), y = c(.1,.9))
+    #width= 300
+  )
+
+plot_demography <- plot_demography %>% 
+  add_pie(
+        values = ~ weight_count$word_total,
+    labels = ~ weight_count$Race,
+    type = 'pie',
+    name = "Character Appearance",
+    text = paste(weight_count$Race, weight_count$percent*100, "%"),
+    textinfo = 'text',
+    domain = list(x = c(.55,.9), y = c(.1,.9))
+ 
+  )
+
+plot_demography <- plot_demography %>% layout(
+    title = "Character Demography",
+    showlegend = FALSE,
+    colorway = faulkner_colorway_bw,
+    margin = m,
+    autosize = F,
+    width = 1024
+    #height = 605
+     # autosize = FALSE
+  )
+
+plot_demography <- plot_demography %>% add_annotations(
+  x = c(.2,.8),
+  y = c(1, 1),
+  xref = 'paper',
+  yref = 'paper',
+  showarrow = FALSE,
+  text = c("Raw Count", "Present in Events"),
+  font = list(size = 14),
+  align = 'left'
+  
+)
+  
+plot_demography
+```
+
+Two important observations stand out from these charts. First, there is no notable shift in the representation of White characters. They are represented in the text in proportion to their raw count. Not only does this contradict Faulkner's own claim that there are more Black people in Yoknapatawpha than White people, it also underscores that both as a social group and as a focus of the narrative, White characters are the predominant group. Second, even though they are a demographic minority, characters with Black and White ancestry are present in `r percent(weight_count$percent[3])` of the text, and are thereby the second most present characters after White characters (`r percent(weight_count$percent[5])`). One way to read the predominance of these characters is as Faulkner's attempt to trouble the color line by showing the distinction between Black and White is exceedingly arbitrary.
+
+Judith and Henry adore Charles Bon when they think he is White, and are able to look past his many fault. Only when his possible Black ancestry is exposed does he suddenly become a threat. Before that moment, Henry learns that Charles not only has an "octoroon" wife and a child, but also learns that Bon may be his half-brother. Henry is willing to look past bigamy and incest. In the end, "it's the miscegenation" that Henry "cant bear" (285). Henry's desperate attachment to nominal racial purity as the non plus ultra of white Southern virtue, exposes the moral bankruptcy of White supremacist thinking.
+
+Similarly, the text also highlights the constructedness of race through the trajectory of Charles Bon's son with his unnamed New Orleans wife. Charles Etienne Saint-Valery Bon crosses the color line with a woman disparagingly described as "coal black and ape-like" (166). Like his father, he too is punished for his racial transgressions, and both Black and White see what they want to see. In the company of his soon to be wedded wife, he prowls the "steamboats" and "honky-tonks" to tell the "negro stevedores and deckhands" that he is not a White man, but as a result they "believed it only the more strongly." When he tries to convince "white men" that he is a "negro" they believe he "lied in order to save his skin" (167). His confrontations with men of either race always end in a physical altercation. There is a deep racial irony here. Charles Bon is murdered because it is believed he might not be "fully" White and tries to marry a White woman, and Charles Etienne is met with violence because no one believes he might be part Black and is married to a Black woman. In these two mirror images of father and son, *Absalom, Absalom!* demonstrates the arbitrariness of the color line.
 
 ```{r mixed_ancestry_present}
 total_present_length <- absalom_events_short %>%
@@ -296,10 +357,10 @@ character_appearances <- absalom_events_short %>%
   arrange(CharacterName)
 ```
 
-A less generous perspective is that Faulkner is not so much concerned with destabilizing the color line, but instead preoccupied with what racial segregation means for Whiteness. That is, if the text were truly investigating how the color line affected the white and black communities, the different trajectories of each mixed ancestry character would receive a more equal amount of attention. As it stands, Charles Etienne and his struggles with Blackness appear in only `r percent(character_appearances$percent[2])` of the text. Other mixed ancestry are similarly marginalized. Clytemnestra's fate is particularly cruel. Despite being Sutpen's daughter, she is continuously disassociated from the family, and is alternately described as "negro half sister" (87), "wild" (126), "without sex or age" (109), "negress" (139), or, simply, "servant" (149). She speaks maybe a handful of words and is present in only `r percent(character_appearances$percent[3])` of the text. This is to say nothing of Charles Etienne's mother (`r percent(character_appearances$percent[5])`), or his even more marginalized son, Jim Bond (`r percent(character_appearances$percent[4])`), who only says four words: "Calls me Jim Bond" (297). This is in contrast to Charles Bon who receives far more attention than all four combined (`r percent(character_appearances$percent[1])`).\
-The racial anxiety runs decidedly along a gendered path. Women like Clytie who are "coffee-colored" (158) are useful as servants, light-skinned women like Charles Bon's first wife are "more valuable as commodities than white girls" (93), and in the Caribbean mixed ancestry women are simply "foreigners" (203). Meanwhile, men of mixed ancestry who do not pursue White women are either effete like Charles Etienne who has "light bones and womanish hands" (162), or brutes like the "hulking slack-mouthed" Jim Bond (173). Racial transgression, in all cases results in a bad end, but the most perilous path of all is the potential corruption of a White woman by a man with possible Black blood.
+A less generous perspective is that the text is not so much concerned with destabilizing the color line, but instead preoccupied with what racial segregation means for Whiteness. That is, if the text were truly investigating how the color line affected the White and Black communities, the different trajectories of each mixed ancestry character would receive a more equal amount of attention. As it stands, Charles Etienne and his struggles with Blackness appear in only `r percent(character_appearances$percent[2])` of the text. Other mixed ancestry characters are similarly marginalized. Clytemnestra's fate is particularly cruel. Despite being Sutpen's daughter, she is continuously disassociated from the family, and is alternately described as "negro half sister" (87), "wild" (126), "without sex or age" (109), "negress" (139), or, simply, "servant" (149). She speaks very little and is present in only `r percent(character_appearances$percent[3])` of the text. This is to say nothing of the scant textual presence of Charles Etienne's mother (`r percent(character_appearances$percent[5])`), or his even more marginalized son, Jim Bond (`r percent(character_appearances$percent[4])`), who only says four words: "Calls me Jim Bond" (297). By comparison, Charles Bon receives far more attention than all four combined: `r percent(character_appearances$percent[1])`.  
+Furthermore, the racial anxiety runs decidedly along a gendered path. Women like Clytie who are "coffee-colored" (158) are useful as servants, light-skinned women like Charles Bon's first wife are "more valuable as commodities than white girls" (93), and in the Caribbean mixed ancestry women are simply "foreigners" (203). Meanwhile, men of mixed ancestry who do not pursue White women are either effete like Charles Etienne who has "light bones and womanish hands" (162), or brutes like the "hulking slack-mouthed" Jim Bond (173). Racial transgression, in all cases results in a bad end, but the most perilous path of all is the potential corruption of a White woman by a man with possible Black blood.
 
-For all the mystery surrounding Charles Bon, Thomas Sutpen receives by far the most narrative focus in the novel and appears in `r percent(character_appearances$percent[7])` of the text. Arguably, the dominance of Sutpen in the text underscores the fact that the lives of mixed ancestry characters do not serve a role outside of how they affect his "design." Focusing on Sutpen and race, conjures another disconcerting specter: the reason for the design's failure. The source of his folly can be traced back to a fundamental misunderstanding regarding racial cues: Sutpen does not recognize his first wife as part Black. There is a way in which the text makes a subtle and uncomfortable argument that Sutpen does not recognized Blackness because he does not embody the proper type of Whiteness. Sutpen is born into very humble beginnings in the mountains of Western Virginia outside of the world of the plantation system. He is unfamiliar with race, and when he was growing up, "the only colored people were Indians and you only looked down at them over your rifle sights" (179). As his clan makes its way closer to the plantations of Virginia, it starts to dawn on him that there were differences not only between "white men and black ones", but also "between white men and white men" (183). Yet, he is never able to shake off the vestiges of his backwoods upbringing, and one of the first accusations Rosa makes against him is that "He wasn't even a gentleman" (9). Even when he is at the apex of his social status, Mr. Compson points out that his "flowering was a forced blooming" and that he was "playing the scene to an audience" (57). He can therefore never hope to permanently establish a foothold among the fine families of Yoknapatawpha: Sartoris, De Spain, Compson. His breeding is too low and his ambitions too grand for the county.
+All of these mixed ancestry characters are in their turn eclipsed by Thomas Sutpen who appears in `r percent(character_appearances$percent[7])` of the text. Arguably, Sutpen's dominance highlights how the lives of mixed ancestry characters only matter with respect to his "design" and its failure. His downfall can be traced back to his fundamental misunderstanding of racial cues: Sutpen does not recognize his first wife as part Black. Disconcertingly, parts of the text suggests that Sutpen does not recognized Blackness because he does not embody the proper type of Whiteness. Sutpen is born into very humble beginnings in the mountains of western Virginia. He is unfamiliar with race, and when he was growing up, "the only colored people were Indians and you only looked down at them over your rifle sights" (179). As his clan makes its way closer to the plantations of Virginia, it starts to dawn on him that there were differences not only between "white men and black ones", but also "between white men and white men" (183). Yet, he is never able to shake off the vestiges of his backwoods upbringing, and one of the first accusations Rosa levels against him is that "He wasn't even a gentleman" (9). Even when he is at the zenith of his social status, Mr. Compson points out that his "flowering was a forced blooming" and that he was "playing the scene to an audience" (57). Sutpen's low breeding forecloses the possibility of him establishing himself permanently among the ranks of the elite families of Yoknapatawpha: Sartoris, De Spain, Compson.
 
 ```{r sutpen_social}
 
@@ -328,7 +389,7 @@ Sutpen_with_upper_class <- absalom_events_short %>%
 
 ```
 
-Whiteness cannot be cleaved from class, and it is little surprise that Sutpen's social ambit straddles all classes equally. If his descendants are not counted, Sutpen only spends `r percent(Sutpen_unique_all$percent[10])` of the text with upper class characters, the rest of the time he is with Enslaved Blacks (`r percent(Sutpen_unique_all$percent[1])`), his middle class in-laws and the French architect (`r percent(Sutpen_unique_all$percent[7])`), and lower class and "poor whites" (`r percent(Sutpen_unique_all$percent[9]+Sutpen_unique_all$percent[6])`). Even when he is with upper class men, it is always in a grotesque pantomime of class status: fighting the people he enslaved (21), his "grand" wedding to Ellen (43), or the "hunting party" for the French architect. Indeed, one way to understand his association with the "poor white" Wash Jones after the end of the Civil War is as Sutpen reverting to his own roots. Jones's shiftless existence in a dilapidated cabin on the purlieus of a grand plantation mirrors his own father's life in Tidewater, Virginia in the early 1800s. Perhaps then, Sutpen's "compelling dream" (134) fails because he is not the right type of White. Had he been born into status, there would have been no need to go to Haiti, and he would have married into a bloodline that would have been guaranteed to be "pure" white, because the rest of the surrounding community would affirm that fact. His tragic flaw was to try to become part of a system that only allows entry at birth. The paradox, of course, is that in Northern Mississippi many of the planters who arrived in the 1830s, as Sutpen does, were not "born" into their position, they were hardscrabble men of few scruples who masked their violent rise from indigence through a veneer of gentility (RAILEY 118-119). The differences between Sutpen and the plantocracy of the town, is a difference in degree, but not in kind.
+Sutpen's poor white origins are visible in his social relations. If his descendants are not counted, Sutpen only spends `r percent(Sutpen_unique_all$percent[10])` of the text with upper class characters, the rest of the time he is with Enslaved Blacks (`r percent(Sutpen_unique_all$percent[1])`), the captive French architect and his middle class in-laws (`r percent(Sutpen_unique_all$percent[7])`), and lower class and "poor whites" (`r percent(Sutpen_unique_all$percent[9]+Sutpen_unique_all$percent[6])`). Even when he is with upper class men, it is always in a grotesque pantomime of class status: fighting the people he enslaved (21), his "grand" wedding to Ellen (43), or the "hunting party" for the French architect. Ultimately, he cannot escape his class. After the Civil War he reverts to his "poor white" roots and develops a curious bond with Wash Jones. Jones's shiftless existence in a dilapidated cabin on the purlieus of a grand plantation mirrors that of Sutpen's father in Tidewater, Virginia in the early 1800s. Perhaps Sutpen's "compelling dream" (134) fails because he is not the right type of White. Had he been born into status, there would have been no need to go to Haiti, and he would have married into a bloodline that would have been guaranteed to be "pure" White, because the rest of the surrounding community would affirm that fact, as it did with Ellen in Jefferson. His tragic flaw was to try to become part of a system that only allows entry at birth. The paradox, of course, is that in Northern Mississippi many of the planters who arrived in the 1830s, as Sutpen does, were not "born" into their position, they were hardscrabble men of few scruples who masked their violent rise from indigence through a veneer of gentility [@RN20 118-119]. They all faced the same vicissitudes of frontier capitalism, and as Quentin bitingly remarks, made the type of deals that "when they work you were smart and when they dont you change your name and move to Texas" (208). The differences between Sutpen and the plantocracy of the town, is a difference in degree, but not in kind.
 
 ```{r death_AA}
 deaths_AA <- absalom_events_short %>% 
@@ -348,7 +409,6 @@ old_age <- absalom_events_short %>%
 
 ```
 
-There is a third way to read the novel along the character axis. The multiple figurative and literal dead-ends can also be seen as the effect of the plantation system destroying the very social relations it is aiming to maintain. Of the `r total_deaths` characters who die in the novel, only `r deaths_AA$n[3]` (`r percent( deaths_AA$percent[3])`) die of old age - Ikkemotubbe and Rosa - the rest dies by murder (`r percent( deaths_AA$percent[2])`), suicide (`r percent( deaths_AA$percent[2])`), or disease (`r percent( deaths_AA$percent[1])`). The two characters who die relatively peacefully, Ikkemottube and Rosa, are rather poetic book-ends to Sutpen's tale of the destruction. The former is cheated out of his land and displaced, and the latter is cheated out of a marriage and lives as a recluse. The fates of the protagonists are much grimmer. Charles Bon is killed by his half-brother, Judith and Charles Etienne who both have transgressive desires across the color line and die of "yellow fever" a disease associated with racial otherness (CLOUGH 96), Clytemnestra starts the fire that kills both she and Henry - eternal physical and spiritual prisoners of Sutpen's Hundred. The only remainder of the Sutpen line is Jim Bond whose incoherent "howling" (300) is a garbled rejoinder to the social system that is rendered mute by its own hypocrisy. In the end, a system that only reproduces violence to uphold a rarefied elite plantocracy is unsustainable. To paraphrase Quentin's father, The entire Sutpen line, and the South more generally, "pays the price for having erected its economic edifice not on the rock of stern morality but on the shifting sands of opportunism and moral brigandage" (209).
 
 ## Part 2 Locations:
 
@@ -399,11 +459,200 @@ location_order <- absalom_events_short %>%
   relocate(new_location, .before = 1)
 ```
 
-One of the tricks the narrative plays is that the intense focus on its main characters appears to isolate them from surrounding community, even if other characters are continuously present. A similar optical illusion takes place with regard to the Sutpen plantation and its connection to the wider world. True, the plantation and its environs are the central axis for a plurality of the action (`r percent(locations$percent[1])`), but the focus on Sutpen's Hundred is not evenly distributed. The majority of events dedicated to the Sutpen plantation occur in chapters 5 and 6 (`r percent(sutpen_place$percent[5]+sutpen_place$percent[6])`), right in the heart of the narrative. It has a less central focus in other chapters. In effect, the text slowly zooms into the plantation in the early chapters, and then slowly zoom's out and pans to other places as the narrative accrues more and more information, however speculative, about Sutpen's purported past.
+The intense narrative attention on the Sutpen family, makes it easy to forget how many times they appear in connection with other characters. A similar optical illusion takes place with regard to the Sutpen Plantation and its ties to the wider world. True, Sutpen's Hundred and its environs are the central locus for a plurality of the action (`r percent(locations$percent[1])`), but this focus is not evenly distributed across the text. The majority of the action at the plantation takes place during chapters 5 and 6 (`r percent(sutpen_place$percent[5]+sutpen_place$percent[6])`), right in the heart of the narrative. It receives less attention in the subsequent chapters. In effect, the text slowly zooms into the plantation in the early chapters, and then slowly zooms out and pans to other places to render a fuller, but still incomplete picture of Sutpen.
 
-This narrative effect is two-fold. First, by slowly drawing the reader into Sutpen's Hundred, the "dark house" of the original title propels the narrative drive of the first half of the novel. It becomes the central positional reference point around which all other action happens. The initial chapters try to answer the question: what is Sutpen's Hundred, the plantation that "this demon", Sutpen, "tore violently" (5) from the earth? The second major part of the narrative, chapters 7 and 8 trace the origin story of Sutpen's grand design, and try to piece together the why of Sutpen's Hundred. The answer to this second question, the motivation for the grand design, takes the narrative farther and farther away from from Sutpen's Hundred and Yoknapatawpha. The dual motion of a gravitational center in the first half of the work, and the locations attracted back by its pull in the second half, set into motion an ever expanding orbit. From this perspective, Sutpen's narrative is a series of ever-widening circles. After staying at Holston House and buying his land, he is suspected of leaving for the Mississippi River to the "steamboats full of gamblers and cotton- and slave dealers to replenish his cache" (26). Quite some time elapses before he leaves the county again, and travels to New Orleans to investigate Bon (82). Shortly afterwards, the war breaks out, and he reaches as far west as Virginia, where he supplants John Sartoris and becomes a Colonel (100). Starting in Chapter 7, the narrative travels to Virginia again, when Shreve and Quentin start reconstructing his past (179). From thereon Sutpen travels to Haiti (193), only to come full circle and return to Yoknapatawpha. Even a fairly crude understanding of geography notes the ever increasing distances Sutpen's narrative travels: the Mississippi River ($\approx$ 80 mi.), New Orleans ($\approx$ 300 mi.), Virginia ($\approx$ 750 mi.), Haiti ($\approx$ 1550 mi.). A compass placed on a map with Northern Mississippi as its anchor point, would create a spiral. The Sutpen family history is ostensibly a local curiosity, but in its retelling it draws in an ever expanding vortex of more distant places. Stretching the spiral metaphor ever so slightly, it could equally well include Harvard ($\approx$ 1,000 mi.), Shreve's birthplace of Edmonton, Alberta ($\approx$ 1,700 mi.), the French Architect's home of Martinique ($\approx$ 2,300 mi.), all the way across the Atlantic to the Haitian Sugar planter owner's birth country, France ($\approx$ 4,500 mi.), and, even back to the West African roots of the formerly enslaved people in Haiti ($\approx$ 6,000 mi.).
+This narrative effect is two-fold. First, by slowly drawing the reader into Sutpen's Hundred, the "dark house" of the original title propels the narrative drive of the first half of the novel. It becomes the central positional reference point around which all other action happens. Read this way, the initial chapters try to answer the question: what is Sutpen's Hundred, the plantation that "this demon," Sutpen, "tore violently" (5) from the earth? The second major part of the narrative, chapters 7 and 8, trace the origin story of Sutpen's grand design, and try to piece together the *why* of Sutpen's Hundred. The answer to this second question, the motivation for the grand design, takes the narrative farther and farther away from from Sutpen's Hundred and Yoknapatawpha. The dual motion of a gravitational center in the first half of the work, and the locations attracted back by its pull in the second half, set into motion an expanding orbit. After staying at Holston House and buying his land, Sutpen is suspected of leaving for the Mississippi River to the "steamboats full of gamblers and cotton- and slave dealers to replenish his cache" (26). Quite some time elapses before he leaves the county again, and travels to New Orleans to investigate Bon (82). Shortly afterwards, the war breaks out, and he reaches as far west as Virginia, where he supplants John Sartoris and becomes a Colonel (100). Starting in chapter 7, the narrative travels to Virginia again, when Shreve and Quentin start reconstructing Sutpen's early years in their monastic Harvard dorm (179). From thereon Sutpen travels to Haiti (193), only to come full circle and return to Yoknapatawpha. Even a fairly crude understanding of geography notes the expanding distances Sutpen's narrative travels: the Mississippi River ($\approx$ 80 mi.), New Orleans ($\approx$ 300 mi.), Virginia ($\approx$ 750 mi.), Haiti ($\approx$ 1550 mi.). A compass placed on a map with Northern Mississippi as its anchor and traced across the locations in order would create a spiral. The Sutpen family history is ostensibly a local curiosity, but in its retelling it draws in an ever expanding vortex of more distant places. Stretching the spiral metaphor ever so slightly, it could equally well include Harvard ($\approx$ 1,000 mi.), Shreve's birthplace of Edmonton, Alberta ($\approx$ 1,700 mi.), the French Architect's home of Martinique ($\approx$ 2,300 mi.), the Haitian Sugar planter owner's birth country, France ($\approx$ 4,500 mi.), and, even back to the West African roots of the formerly enslaved people in Haiti ($\approx$ 6,000 mi.).
 
-The extensive distance of these locations suggests that the plantation system is not only maintained through intimate social relations, but also reticulated across a network interlocking spaces. The various characters use these spaces to continuously displace the evils of slavery onto a place "somewhere else." Rosa places the enslavement in Yoknapatawpha on a continuum with an "old quiet country like Virginia or Carolina" (11). Charles Bon's marriage to an "octoroon" mistress is possible because New Orleans is the home of a thousand men "without honor or principle" who produced these women and ensnare them into concubinage (91). The town fears Sutpen's "wild stock" of African captives will mix with their "tame" enslaved peoples (48). In this imagining, Haiti becomes an economic and cultural entrepôt between the New World and the Old, or as Quentin's grandfather describes it, "the halfway point between what we call the jungle and what we call civilization" (202). Rather than Sutpen's Hundred, the "little island" becomes the true "theatre for violence and injustice" (202). This move is particularly problematic. Haiti became the first Black republic in the Western Hemisphere in 1804, and thus abolished slavery several years before Sutpen was even born. This historical discrepancy has spawned a lengthy critical debate (See). Most recently, Wanda Raiford has made the provocative argument that the blatant elision of the historical Haiti and its unqualified acceptance by every listener in the text, also implicates the reader in the erasure of US imperial history and Black agency (103). Extending this logic, Haiti becomes the primordial site onto which to displace the evils of slavery. In doing so, General Compson and indeed the entire Compson line, deflect any historical guilt for their violent subjugation of other human beings. If anything, the "wild" version of slavery in the non-existent version of Haiti, sanctions the "tame" enslavement in the "civilized" US South. As the vortex of locations suggests, the plantation system does not stop neatly at the Mason-Dixon line, no matter how much both Quentin and Shreve try to contain it in the South. Harvard, too, is indirectly profiting from the slave system, even if it is right across the Charles River from one of the centers of the abolitionist movements, Boston. Historically, the sons of slave owners and, later, former slave owners traveled to Harvard and other elite institutions to be conferred a degree and respectability. Indirectly, the university profits from enslavement and the wealth accumulated through violent racial labor exploitation.[Ebony and ivory] The Compson family is no exception to this. The tract of land Quentin's father sells to send his son to school belonged to the Compson plantation. The price of admission is his historical connection to slavery. The only one who appears fully detached from the global system of human bondage that shaped the transatlantic world is Shreve. As a Canadian outsider and someone unfamiliar with the South, this is all alien to him. Yet even he has inherited the plantation system's perverse racial logic. While Quentin is famously ambivalent about his relationship with the South and its troubled past, Shreve's vision of the future is one of white racial suicide. He prophesyies that "the Jim Bonds are going to conquer the western hemisphere" and fears that in "a few thousand years, I who regard you will also have sprung form the loins of African kings" (302). It is unclear how much of this is Shreve's trademark flippancy, but even in his glib sermonizing about the fate of the western world, he reveals profound anxieties with the disappearance of "pure" White people. He claims that the future Jim Bonds might "bleach out" as they reach the poles, but it will "still be Jim Bond" suggesting that Black heritage represents an inferiority beyond skin color. Shreve's own obsessions with race show that the legacy of enslavement cannot be told through one individual family, region, or, even country, but is, in fact, the origin story of the western world.
+As *Digital Yoknapatawpha* is fundamentally a mapping project, it is possible to take this information and project it onto a digital interpretation of Yoknapatawpha. The custom map below overlays three sets of data: all event locations, locations with a global connection, and locations where Sutpen is present. The primary layer draws a circle around each location proportional to how much time the text spends there. The second layer adds those locations that have a global connection to the text. No events take place in Edmonton, Martinique, France, or West Africa, but the text features characters from those places. Finally, the location circles have been overlaid with "o-times" symbols ( $\otimes$ ) to indicate the locations where Sutpen appears in an event. When the underlying circle and the symbol coincide exactly Sutpen is present at all of the events at that location. 
+
+```{r locations_map}
+location_frequency <- absalom_events_short %>%
+  distinct(EventID, .keep_all = TRUE) %>%
+  select(LocationTitle, X, new_y, event_words) %>%
+  group_by(LocationTitle) %>%
+  mutate(location_sum = sum(event_words)) %>%
+  distinct(LocationTitle, .keep_all = TRUE) %>%
+  mutate(name = "All Locations") %>%
+  select(-event_words) %>%
+  ungroup() %>%
+  add_row(
+    LocationTitle = "Martinique",
+    X = 2350,
+    new_y = -1353,
+    location_sum = 10,
+    name = "Global Connection"
+  ) %>%
+  add_row(
+    LocationTitle = "Edmonton, Alberta",
+    X = 2310,
+    new_y = -1280,
+    location_sum = 10,
+    name = "Global Connection"
+  ) %>%
+  add_row(
+    LocationTitle = "France",
+    X = 2475,
+    new_y = -1300,
+    location_sum = 10,
+    name = "Global Connection"
+  ) %>%
+  add_row(
+    LocationTitle = "Africa",
+    X = 2460,
+    new_y = -1353,
+    location_sum = 10,
+    name = "Global Connection"
+  ) %>%
+  mutate(X = X - 632) 
+```
+
+```{r hybrid_locations}
+sutpen_locations <- absalom_events_short %>%
+  filter(CharacterName == "Thomas Sutpen") %>%
+  filter(PresentMentioned == "Present") %>%
+  distinct(EventID, .keep_all = TRUE) %>%
+  select(LocationTitle, X, new_y, event_words) %>%
+  group_by(LocationTitle) %>%
+  mutate(location_sum = sum(event_words)) %>%
+  distinct(LocationTitle, .keep_all = TRUE) %>%
+  mutate(name = "Thomas Sutpen") %>%
+  mutate(X = X - 632) %>%
+  select(-event_words, -X, -new_y)
+
+hybrid_locations <- location_frequency %>%
+  full_join(sutpen_locations,
+            by = "LocationTitle",
+            suffix = c("_all", "_sut")) %>%
+  mutate(name_sut = "Thomas Sutpen") 
+```
+
+```{r map_annotations}
+#write_csv(hybrid_locations, "hybrid_locations_export.csv")
+#Manual clean for locations
+
+map_annotation <- read_csv("hybrid_locations.csv")
+```
+
+```{r plot_locations_map, out.width="768px",  out.height="605px"}
+
+
+image_file <-
+  "https://raw.githubusercontent.com/joostburgers/absalom_sentiment_analysis/master/images/dy_base_layer_4_2.png"
+
+plot_locations <-
+  plot_ly(
+    hybrid_locations,
+    x = ~ X,
+    y = ~ new_y,
+    name =  ~ name_all,
+    #colors= ~name_all,
+    type = 'scatter',
+    mode = 'markers',
+    size = ~ location_sum_all,
+    # sizes = c(5, max(hybrid_locations$location_sum)*.003),
+    hoverinfo = 'text',
+    text = ~ paste('Total event length:', location_sum_all, '<br>',  
+                   LocationTitle),
+    marker = list(
+      sizemode = 'diameter',
+      opacity = .8,
+      line = list(width = 1, color = 'white'),
+      symbol = c("circle")
+    )
+  )
+
+plot_locations <- plot_locations %>%
+  add_trace(
+    size = ~ location_sum_sut,
+    name = ~ name_sut,
+    marker = list(
+      sizemode = 'diameter',
+      opacity = .8,
+      line = list(width = 1, color = 'black'),
+      symbol = "circle-x-open",
+      color = 'black'
+    )
+  )
+
+plot_locations <- plot_locations %>%
+  layout(
+    title = "Locations in <i>Absalom, Absalom!</i>",
+    xaxis = list(
+      title = "",
+      visible = FALSE,
+      fixedrange = TRUE,
+      range = c(0, 2008)
+    ),
+    yaxis = list(
+      title = "",
+      visible = FALSE,
+      fixedrange = TRUE,
+      range = c(-1660, 0)
+    ),
+    margin = m,
+    font = plot_font,
+    showlegend = TRUE,
+    legend = list(
+      title = list(text = "<b>Locations</b>"),
+      itemsizing = 'constant'
+      
+    ),
+    autosize = F,
+    width = 768,
+    height = 605,
+    images = list(
+      list(
+        source =  image_file,
+        xref = "x",
+        yref = "y",
+        x = 0,
+        y = -40,
+        sizex = 2008,
+        sizey = 1660,
+        sizing = "stretch",
+        opacity = 0.8,
+        layer = "below"
+      )
+    ),
+    colorway = c("#C0C0C0", "#101010")
+  )
+
+plot_locations <- plot_locations %>%
+  add_annotations(
+    x = map_annotation$X,
+    y = map_annotation$new_y,
+    xref = 'x',
+    yref = 'y',
+    showarrow = TRUE,
+    showarrow = TRUE,
+    arrowhead = 3,
+    arrowwidth = 1,
+    arrowsize = .5,
+    xanchor = 'left',
+    ax = map_annotation$xoffset,
+    ay = map_annotation$yoffset,
+    text = map_annotation$LocationTitle,
+    font = list(size = 12),
+    align = 'left'
+    
+  )
+
+plot_locations
+# tags$h6(HTML("<i>Figure 9:</i> Map of where each racial word appears in the text by location."), style =fig_caption)
+# tags$br()
+
+
+```
+
+Reading the map from left to right, several important features are visible. Immediately noticeable is the large circle at the Sutpen Plantation. It is preeminent among all the other locations. In fact, many of the smaller circles surrounding Sutpen's Hundred are places on the vast property. Within the county most of the locations are confined to the areas between the plantation and the town, with a smattering of events in the direct north of the county when Sutpen is searching for the French Architect. The relative sparsity of locations in the county suggest the intense focus on the Sutpen plantation early on in the text. Taking a broader view, it is clear that the action travels to quite a number of places outside of Yoknapatawpha, notably New Orleans, Tidewater, the South during the Civil War, and Haiti. Sutpen is ubiquitous across these locations and there are few places where he is not the most present character in an event, or indeed, the only present character in an event. The key exceptions to this are the three narrative positions: The Coldfield House, the Compson Place, and Harvard. Spatially, these locations move the story farther away from the Sutpen Place. The Coldfield place represents a bridge Sutpen's life and its retelling. It is the only place Sutpen visits that is also the location of a living narrator.
+
+Beyond these locations, the global connections enmesh the text in the larger transatlantic circuit. The extensive distance of these locations suggests that the plantation system is not only maintained through intimate social relations, but also reticulated across a network interlocking spaces. The various characters use these spaces to continuously displace the evils of slavery onto a place "somewhere else," and thereby keep their own moral complicity at a distance. Rosa places the enslavement in Yoknapatawpha on a continuum with an "old quiet country like Virginia or Carolina," as if its continued practice were a natural evolution (11). Charles Bon's marriage to an "octoroon" mistress is possible because New Orleans is a sinful places, and the home of a thousand men "without honor or principle" who produced these women and ensnare them into concubinage (91). The town fears Sutpen's "wild stock" of African captives will mix with their "tame" enslaved peoples (48). To the people of the town, Haiti is an economic and cultural entrepôt between the New World and the Old, or as Quentin's grandfather describes it, "the halfway point between what we call the jungle and what we call civilization" (202). Rather than Sutpen's Hundred, the "little island" becomes the true "theatre for violence and injustice" (202). The original sin of slavery is again displaced from South. This time onto an Edenic island in the Caribbean.
+
+The displacement of slavery onto Haiti is both galling and puzzling. Haiti became the first Black republic in the Western Hemisphere in 1804, and thus abolished slavery several years before Sutpen was even born. This historical discrepancy has spawned a lengthy critical debate (See). Most recently, Wanda Raiford has made the provocative argument that the elision of the historical Haiti and its unqualified acceptance by every listener in the text, also implicates the reader in the erasure of US imperial history and Black agency [@RN27 103]. Extending this logic, Haiti becomes the primordial site onto which to project the evils of slavery. In doing so, General Compson and indeed the entire Compson line, deflect any historical guilt for their violent subjugation of other human beings. If anything, the "wild" form of slavery in the non-existent version of Haiti, sanctions the "tame" enslavement in the "civilized" US South.
+
+As the constellation of locations suggests, the plantation system does not stop neatly at the Mason-Dixon line, no matter how much both Quentin and Shreve try to contain it in the South. Despite its role in the abolitionist movement, Harvard, directly and indirectly profited from slavery [@RN40 226?] (Beckert ET AL, 226?). Historically, Quentin is following in the footsteps of other sons of slave owners and, later, former slave owners who went to Harvard and other elite institutions to be conferred a degree and respectability [@RN40 238]. Though not explicitly stated in *Absalom, Absalom*, in the *Sound and the Fury* it is clear that the tract of land Quentin's father sells to send his son to school belonged to the Compson plantation. The price of tuition is paid for through his historical connection to enslavement.
+
+The only one who appears fully disconnected from the system of human bondage that shaped the transatlantic world is Shreve. As a Canadian outsider and someone unfamiliar with the South, this is ostensibly all alien to him. Yet, he and Quentin are still connected by the same River, the "Continental Trough" and "geologic umbilical" that runs from Mississippi to Edmonton (208). The waterways that bring together the two Harvard classmen were also used to ferry enslaved people, their commodities, and ideas that supported these social relations north and south. Through these arteries it appears that Shreve has inherited the plantation system's perverse racial logic. While Quentin is famously ambivalent about his relationship with the South and its troubled past, Shreve's vision of the region and the future it portends is one of white racial suicide. He prophesies that "the Jim Bonds are going to conquer the western hemisphere" and fears that in "a few thousand years, I who regard you will also have sprung form the loins of African kings" (302). It is unclear how much of this is Shreve's trademark flippancy, but even in his glib sermonizing about the fate of the western world, he reveals profound anxieties over the disappearance of "pure" White people. He claims that the future Jim Bonds might "bleach out" as they reach the poles, but it will "still be Jim Bond" suggesting that Black heritage represents an inferiority beyond skin color. Shreve's own obsessions with race show that the legacy of enslavement cannot be told through one individual family, region, or, even country, but is, in fact, the origin story of the western world.
 
 ```{r narrative_structure}
 #This primes the data for plotly. TODO upstream this ina more logical way. This is just a grab bag of cleaning.
@@ -464,13 +713,13 @@ absalom_status <- absalom_chronology %>%
 
 One of the most challenging parts of *Absalom, Absalom* is certainly the narrative structure. Readers familiar with Faulkner's other works will recognize the experimentation with different perspectives, stream-of-consciousness narration, and the continuous revision of basic plot points that were also featured in *The Sound and the Fury*, *As I Lay Dying*, and *Light in August*. In some respects, *Absalom, Absalom!* represents the culmination of these narrative innovations. At no other point in his career does Faulkner weave these elements together with such complexity. *Absalom, Absalom!* features multiple narrators whose stories all confluence in stream-of-consciousness narration that, at times, makes them indistinguishable. What is more, the different narrators continuously revise major plot points, and to borrow Mr. Compson's apt description, drop these "into the telling as you might flick the joker out of a pack of fresh cards without being able to remember later whether you had removed the joker or not" (203). Disentangling the text is therefore equal parts exasperating and exhilarating.
 
-To complicate matters further, the narrative is decidedly non-linear. Only `r percent(absalom_jump$percent[3])` of the events follow a sequential order, the remainder of the plot either jumps forward (`r percent(absalom_jump$percent[2])`) or backwards (`r percent(absalom_jump$percent[1])`) non-sequentially. These jumps might appear random, but are actually part of a deep structure to the text. Faulkner's notes for *Absalom, Absalom!* make it clear that he kept elaborating its design, and making the story more and more complex ( Blotner 347, Langford 11). Because the text is so confusing, deciphering the structure of the text has been somewhat of a cottage industry (EGAN 201-202, BROOKS, MATLACK ), but it was not until the assiduous work of Steve Railton in 2003 that it became possible to visualize its chronology.[^4] This data formed the foundation for the encoding of *Absalom, Absalom!*'s in the *DY* database, and helped in mapping out a chronology. Using this *DY* data it is possible to generate a plot structure chart.[^5]
+To complicate matters further, the narrative is decidedly non-linear. Only `r percent(absalom_jump$percent[3])` of the events follow a sequential order, the remainder of the plot either jumps forward (`r percent(absalom_jump$percent[2])`) or backwards (`r percent(absalom_jump$percent[1])`) non-sequentially. These jumps might appear random, but are actually part of a deep structure. Faulkner's notes for *Absalom, Absalom!* make it clear that he had a core structure, and kept elaborating its design [@blotnerFaulknerBiography2005b 347; @RN33 11]. Because the text is so confusing, deciphering the structure of the text has been somewhat of a cottage industry [@RN29 201-202; @RN31; @RN32] (EGAN 201-202, BROOKS, MATLACK ), but it was not until the assiduous work of Steve Railton in 2003 that it became possible to visualize its chronology on a digital timeline.[^5] This data formed the foundation for the encoding of *Absalom, Absalom!*'s in the *DY* database, and helped in mapping out a chronology. Using this *DY* data, it is possible to generate a plot structure chart.[^6]
 
-[^4]: unfortunately the visualization is no longer operational, but efforts are being made to revive it.
+[^5]: unfortunately the visualization is no longer operational, but efforts are being made to revive it.
 
-[^5]: I have written an extensive and rather technical piece on this here
+[^6]: I have written an extensive and rather technical piece on this here.
 
-Conceptually, a text can have two different orders: chronological order and page order. Chronological order is the order of events in which they occur on a timeline of the story, and page order is when they actually occur in the text. A more common distinction is between story and plot, where the story is the sequence of events as they happened, and the plot is the order in which they are told. On a plot structure chart events that happen later are higher on the y axis, while events that are earlier are lower. If the the story is told in the sequence of events as it occurs, it will rise at a 45 degree slope. For example, we do not learn of Sutpen's origins in Western Virginia until chapter seven. Chronologically this is an early event, but in the plot it is told much later. This point will be low on the y-axis, but about three fourths of the way across on the x-axis. Generally, when events drop down the y axis this is a sign of a flashback. Conversely, a jump up is a flashforward. In *DY* the narrative structure of every Faulkner text can be accessed through the "Narrative Analysis" dashboard. The image below has been reproduced in greyscale for this essay. It shows the narrative structure of the text, and how that information is conveyed to the reader: narrated through the external narrator, told by one of the characters, or conveyed through one of the other types of narration identified by *DY:* remembered, hypothesized, or narrated+consciousness. The later three were consolidated into one data series because their number was relatively low. The chart has also been annotated with major plot points.
+Conceptually, a text can have two different orders: chronological order and page order. Chronological order is the order of events in which they occur on a timeline of the story, and page order is when they actually occur in the text. A more common distinction is between story and plot, where the story is the sequence of events as they happened, and the plot is the order in which they are told.^[This idea was originally developed by the Russian formalists in the 1920s, who labeled story and plot, fabula and syuzhet, respectively [@shklovskiiTheoryProse1990]. The distinction between the two elements was also independently intuited by E.M. Forster around the same time [@forsterAspectsNovel1927].]  On a plot structure chart, events that happen later are higher on the y axis, while events that happen earlier are lower. If the the story is told in the sequence of events as it occurs, it will rise at a 45$^\circ$ slope. Most of *Absalom, Absalom!* is out of order and deviates from this 45$^\circ$ angle. For example, we do not learn of Sutpen's origins in western Virginia until chapter 7. Chronologically this is an early event, but in the plot it is told much later. This point will be low on the y-axis, but about three fourths of the way across on the x-axis. Generally, when events drop down the y axis this is a sign of a flashback. Conversely, a jump up is a flashforward. In *DY* the narrative structure of every Faulkner text can be accessed through the "Narrative Analysis" dashboard [@burgersNarrativeStructureAnalysis]. The chart below has been reproduced in greyscale for this essay. It shows the narrative structure of the text, and how that information is conveyed to the reader: narrated through the external narrator, told by one of the characters, or conveyed through one of the other types of narration identified by *DY:* remembered, hypothesized, or narrated+consciousness. The later three were consolidated into one data series because their number was relatively low. The chart has also been annotated with major plot points.
 
 ```{r import_annotations}
 #creates a clean csv for export. Not necessary
@@ -665,7 +914,6 @@ plot_aa_bw <-  plot_aa_bw %>%
       ticktext = chapters_single$chapter,
       gridwidth = 1.5,
       title = list(text = "Chapter")
-      
     ),
     yaxis = list(title = list(text = "Chronology"),
                  showgrid = FALSE),
@@ -682,7 +930,8 @@ plot_aa_bw <- plot_aa_bw %>%
     xref = "x",
     yref = "y",
     showarrow = TRUE,
-    arrowhead = 4,
+    arrowhead = 3,
+    arrowwidth = 1,
     arrowsize = .5,
     ax = chrono_ann_import$xoffset,
     ay = chrono_ann_import$yoffset,
@@ -700,7 +949,8 @@ plot_aa_bw <- plot_aa_bw %>%
     xref = "x",
     yref = "y",
     showarrow = TRUE,
-    arrowhead = 4,
+    arrowhead = 3,
+    arrowwidth = 1,
     arrowsize = .5,
     ax = chrono_ann_import_secondary$xoffset,
     ay = chrono_ann_import_secondary$yoffset,
@@ -710,72 +960,25 @@ plot_aa_bw <- plot_aa_bw %>%
     borderwidth = 0
   )
 
-div(plot_aa_bw)
+plot_aa_bw
 
 ```
 
-At first blush, the above chart can be a bit overwhelming; it is condensing a lot of data into a very small space. It is easiest to break it down into several components. First, the top line of squares that gradually rises from left to right represents the narrative present. These are all the conversations Quentin has with Rosa, his father, and Shreve during the summer of 1909 and winter of 1910. The major stretches of the story told by one narrator are also marked on this top line: Rosa, Mr. Compson, Quentin, Shreve, and, finally, Shreve and Quentin together. Below this top line are all the events that happened in the past. The gray dots that appear to "bubble" up are, in fact, the events in the past that are told by the different narrators. These initially seem frenetic and disorganized, but each actually makes an elongated "S" curve. The shape of the curve gives an indication about the narrative pacing. Each narrator opens their story with a lot of detail and a high density of events near the end, but there is a tendency to skip through the middle at a more rapid pace. All the while, the various s-curves make their way towards the present. Some curves start farther down and others end higher up. This difference in clustering makes more sense relative to the line markers, which indicate chapters. Moving from left to right there is a small S at the bottom of chapter 1, a second on that stretches from chapter 2-3, the most substantial one that goes all the way from chapter 4 to chapter 7 and then finally two individual curves in chapter 7 and 8. These patterns suggest the way in which chapters 1 and 2 act as a preview to the story, while chapter 4-7 develop the rising action. Meanwhile, chapters 7 and 8 each in their own way represent a climax as information that was hinted at previously is explained more fully, if still incompletely. Within chapters there is a consistent pattern as well. First, there is narration in the present, then the narrative drops down into the "deep" past and works its way back up towards the present. There might be some errant events that float between the S curve and the narrative present, but generally these are previews for events that will happen later. The pattern is actually pretty regular overall. In this sense, all the chapters work together to tell the "entire" story of Sutpen. With a little imagination, one could even slide the curves into each other to make one long curve of the events and put them all in the right order. To help understand what is going on at each point on the chart, certain major events have been annotated. On occasion, some, though certainly not all, repetitions of major events are marked. This is particularly true of Henry shooting Bon, which is an image that occurs at least four times.
+At first blush, the above chart can be a bit overwhelming; it is condensing a lot of data into a very small space. It is easiest to break it down into several components. First, the top line of squares that gradually rises from left to right represents the narrative present. These are all the conversations Quentin has with Rosa, his father, and Shreve during the summer of 1909 and winter of 1910. The major stretches of the story told by one narrator are also marked on this top line: Rosa, Mr. Compson, Quentin, Shreve, and, finally, Shreve and Quentin together. Below this top line are all the events that happened in the past. The gray dots that appear to "bubble up" seem frenetic and disorganized, but they actually cluster into elongated "S" curves. The shape of the curve gives an indication about the narrative pacing. Each narrator opens their story with a lot of detail and a high density of events near the end, but there is a tendency to skip through the middle with larger chronological jumps. All the while, the various s-curves make their way towards the present. Some curves start farther down and others end higher up. This difference in clustering makes more sense relative to the line markers, which indicate chapters. Moving from left to right there is a small S at the bottom of chapter 1, a second one that stretches from chapter 2-3, the most substantial one that goes all the way from chapter 4 to chapter 7 and then finally two individual curves in chapter 7 and 8. These patterns suggest the way in which chapters 1 and 2 act as a preview to the story, while chapter 4-7 develop the rising action. Meanwhile, chapters 7 and 8 each in their own way represent a climax, as information that was hinted at previously is explained more fully, if still incompletely. Within chapters there is a consistent pattern as well. They open in the present, drop down into the "deep" past and work their way back up towards the present. There might be some errant events that float between the S curve and the narrative present, but generally these are previews for events that will happen later. The pattern is actually pretty regular overall. In this sense, all the chapters work together to tell the "entire" story of Sutpen. With a little imagination, one could even slide the curves into each other to make one long curve of the events and put them all in the right order. To help understand what is going on at each point on the chart, certain major events have been annotated. On occasion, some, though certainly not all, repetitions of major events are marked. This is particularly true of Henry shooting Bon, which is an event that is alluded to at least four times.
 
-Based on the chart, it also possible to make basic inferences about patterns in the plot, in particular Faulkner's use of delayed revelation. In the beginning, Sutpen mysteriously appears in chapters 1 and 2, but we do not get his story until chapter 7; quite some time after it is revealed that he dies at the end of Chapter 5. His cause of death only becomes clear by the end of Chapter 7. The story of Henry shooting Charles is told in the first couple of pages, and again in chapters 4 and 5, but we do not get the fuller version until the end of Chapter 8. The narrative gives glimpses of the the past, but only provides their full context until much later. To add to the complexity of the history, it is told in multiple different ways through different narrators. Generally, events in the past are "told", but they can also be narrated by the third person narrator, or use a more esoteric forms of narration like hypothesizing or a memory within a telling.
+Based on the chart, it also possible to make basic inferences about patterns in the plot, in particular Faulkner's use of delayed revelation. In the beginning, Sutpen mysteriously appears in chapters 1 and 2, but we do not get his full story until chapter 7; quite some time after it is revealed that he dies at the end of Chapter 5. His cause of death only becomes clear by the end of Chapter 7. The story of Henry shooting Charles is told in the first couple of pages, and again in chapters 4 and 5, but we do not get the fuller version until the end of Chapter 8. The narrative gives glimpses of the the past, but only provides their full context until much later. To add to the complexity of the history, it is told in multiple different ways through different narrators. Generally, events in the past are "told", but they can also be narrated by the third person narrator, or use a more esoteric forms of narration like hypothesizing or a memory within a telling.
 
-Visually, it is useful to imagine the S curves as continuous undulations of the past disrupting the placid suspension of the narrative present. The various narrators are not so much pulling up the past, but rather riding its currents to navigate the present, or as Quentin muses:
+Visually, it is useful to imagine the S curves as continuous undulations of the past disrupting the placid suspension of the narrative present. The various narrators are not so much plumbing the past, but rather riding its currents to navigate the present, or as Quentin muses:
 
-> Maybe nothing ever happens once and is finished. Maybe happen is never once but like ripples maybe on water after the pebble sinks, the ripples moving on, spreading, the pool attached by a narrow umbilical water-cord to the next pool which the first pool feeds, has fed, did feed, let this second pool contain a different temperature of water, a different molecularity of having seen, felt, remembered, reflect in a different tone the infinite unchanging sky, it doesn't matter: that pebble's watery echo whose fall it did not even see moves across its surface too at the original ripple-space, to the old ineradicable rhythm (210)
+> Maybe nothing ever happens once and is finished. Maybe happen is never once but like ripples maybe on water after the pebble sinks, the ripples moving on, spreading, the pool attached by a narrow umbilical water-cord to the next pool which the first pool feeds, has fed, did feed, let this second pool contain a different temperature of water, a different molecularity of having seen, felt, remembered, reflect in a different tone the infinite unchanging sky, it doesn't matter: that pebble's watery echo whose fall it did not even see moves across its surface too at the original ripple-space, to the old ineradicable rhythm.... (210)
 
-Following this metaphor, Sutpen's arrival is the pebble that ripples through the history of Yoknapatawpha. The narrators each describe the subsequent history from in their own way, but since there is such a confluence of events it becomes hard to separate one from the other. In effect, the characters are buoyed by the present, but it is impossible to tell what specific part of the past they are floating on as the entire displacement of the past makes the present possible.
-
-```{r narrators_distinct}
-narrators_distinct <- absalom_events_short %>%
-  separate_rows(narrator, sep = ",") %>%
-  distinct(narrator)  %>%
-  nrow()
-```
-
-Another way to think about the relationship between the lives of the narrators and the communal story of Sutpen is a commentary on the nature of historical inquiry. While it may seem that by the end of the narrative, the entire sordid history is dredged up, nothing could be farther from the truth. The narrative introduces so many overlapping and contradictory sources of information that it is hard to distinguish truth from falsehood. There are no fewer than `r narrators_distinct` unique sources of information such as major narrators like Rosa and Mr. Compson, but also artifacts such as Bon's letter, and town gossip that appears to come from nowhere but shapes the perceptions of each character.
-
-```{r narrator_break_up}
-narrators <- absalom_events_short %>%
-  distinct(EventID, narrator, event_words) %>%
-  separate_rows(narrator, sep = ",") %>%
-  group_by(EventID, event_words) %>%
-  arrange(EventID, narrator) %>%
-  summarize(narrator = str_c(narrator, collapse = ",")) %>%
-  mutate(narrator = ifelse(str_count(narrator, ",") > 0, "Multiple-Sources", narrator)) %>%
-  group_by(narrator) %>%
-  summarize(word_total = sum(event_words)) %>%
-  mutate(narrator = ifelse(word_total < 1910, "Other", narrator)) %>%
-  mutate(narrator = str_trim(narrator)) %>%
-  mutate(percent = word_total / sum(word_total))
-```
-
-Unlike Faulkner's other texts though, these sources of information are not necessarily distinct from one another. Famously, Shreve and Quentin's voice starts to merge towards the end of the novel. The focus on this section tends to overshadow the fact that much of the novel is being being reconstituted by its narrators through several different sources simultaneously. Recounting his life story in 1834, Sutpen tells Quentin's grandfather plainly, "So I went to the West Indies" (193), which Quentin repeats to Shreve in 1910. Sutpen, Quentin's grandfather, and Quentin are all sources of the information, even if it seems implausible that this would be a verbatim transmission. Doing so means believing that Quentin remembers exactly what his grandfather said at an unspecified previous date, and that his grandfather, in turn, remembered a conversation he had at least seventy years previous late at night while drinking heavily. This is doubtful.
-
-However problematic establishing the sourcing for each event might be, the *Absalom, Absalom!* coding team-lead Steve Railton has marked all of them. In a sizeable number of cases, the narrative is compiled through multiple-sources (`r percent(narrators$percent[11])`). There is no real way disaggregate these sources from one another. Moreover, this would work against the grain of the text, which is continuously reinforcing the communal nature of historical recollection. This caveat granted, it is possible to bluntly calculate how much each of the `r narrators_distinct` sources contributes to the narrative. Certainly, this is not an exact measure, but the relative differences are quite revealing.
-
-```{r narrators_single}
-narrators_single <- absalom_events_short %>%
-  distinct(EventID, narrator, event_words) %>%
-  separate_rows(narrator, sep = ",") %>%
-  group_by(EventID, event_words) %>%
-  arrange(EventID, narrator) %>%
-  add_count(EventID, name = "event_narrators") %>%
-  mutate(event_words = event_words / event_narrators) %>%
-  group_by(narrator) %>%
-  mutate(narrator = str_trim(narrator)) %>%
-  summarize(word_total = sum(event_words)) %>%
-  mutate(word_total = as.integer(word_total)) %>%
-  #mutate(narrator = ifelse(word_total < 3675, "Other", narrator)) %>% 
-  mutate(percent = word_total/sum(word_total)) %>% 
-  arrange(narrator)
-```
-
-The most prominent source of information is Quentin's father (`r percent(narrators_single$percent[2])`). Meanwhile, Quentin contributes significantly less to the story: `r percent(narrators_single$percent[9])`. Whether this number is low or high is a matter of perspective. On the one hand, as he was first invited by Miss Rosa to listen to her narrative so he could "write about it" and "submit it to the magazines" (5), it makes sense that he would contribute little to a narrative that he presumably does not fully know, even if he already knows part of it by simply "breathing the same air" (7). On the other hand, the dual voice of Shreve and Quentin actually contributes roughly the same amount `r percent(narrators_single$percent[12])`. This basic fact raises far more questions than it answers. If the ostensible point of the book is to uncover the history of Sutpen, why does the main historian, Quentin, ultimately cede the story to Shreve who fills in the gaps through flights of fancy? What does it say about historical inquiry if there is no way to establish a reliable source? The main historian Mr. Compson lays out a detailed account, but he does not know the most crucial detail: Sutpen's wife wife may have been part Black. The unreliability of the narrators throws into question the carefully crafted assumptions about the social ambit of the characters and the spatial organization of the plantation system laid out earlier. What's more, the problem of historical inquiry is an entirely countervailing force to the rippling water, the past keeps crashing into the present, but investigating it causes only more ripples.
+Following this metaphor, Sutpen's arrival is the pebble that ripples through the history of Yoknapatawpha. The narrators each describe the subsequent history in their own way, thereby causing the ripples to undulate and resonate at different frequencies, sometimes negating and sometimes amplifying one another. The patterns are all different, but distinguishing where one begins and another ends is impossible.
 
 ## Part 4: Language
 
 ### "it struck, word by word, the resonant strings of remembering"
 
-Characters, locations, and events do not exist independently in a text, they are all embedded in language. To state the obvious, authors tell stories through language. Though *Absalom, Absalom!* is certainly a story, it is as much about the telling as it is about the tale. If Faulkner's prose can seem impenetrable it is because he plays with language so much that it draws attention to itself. Indeed, a number of critics have taken this approach and pointed out that Faulkner's use of language in *Absalom, Absalom!* is blank, blank, blank. Pushing these insights further, computational analysis suggests that the Faulkner's language is one that resists the notion that a story can every be fully told.
+Characters, locations, and events do not exist independently in a text, they are all embedded in language. To state the obvious, authors tell stories through language. Though *Absalom, Absalom!* is certainly a story, it is as much about the telling as it is about the tale. If Faulkner's prose can seem impenetrable, it is because he plays with language so much that it draws attention to itself. Indeed, a number of critics have taken this approach and pointed out that Faulkner's use of language in *Absalom, Absalom!* is TODO Fill in **blank, blank, blank**. Pushing these insights further, computational analysis suggests that the Faulkner's language resists the notion that a story can ever be fully told.
 
 ```{r sentence_length}
 
@@ -800,11 +1003,9 @@ absalom_sentences_long <- absalom_sentences %>%
   nrow()
 ```
 
-#### Sentences
+The most infamous stylistic feature of *Absalom, Absalom!* is certainly the length of the sentences. In fact, according to the 1983 *Guinness Book of World Records* it holds the dubious record of the longest sentence in the English language - 1,300 words [@RN34 228]. The claim is both absurd because it is an achievement that could easily be bested [@pinkerLanguageInstinctHow1995 83], and inaccurate because James Joyce's *Ulysses* certainly has longer sentences, while Faulkner himself beat his own "record" with a 1,600 word sentence in *Go Down, Moses* [@RN35 102]. Faulkner's long sentences are more than a matter of trivia, however; they quite literally stretch the very concept of the sentence, and by extension the English language. It is a measure of some comfort that they cause trouble for computers and humans alike. Normally, computing sentence length in a text is a very simple procedure. With *Absalom, Absalom!*, there are so many parenthetical phrases and embedded quotations that it is difficult to detect whether a sentence has ended. This is to say nothing of the far more profound intellectual questions these long pieces of text provoke about the grammatical structure of sentences. There is no hard and fast rules as to how long a sentence can be, and yet at a certain point the structure becomes so complex that all the connections might be syntactically correct but semantically incoherent. Perhaps it is better to say, therefore, that the novel is a collection of clauses occasionally interrupted by punctuation. Given this, the computed average sentence length of `r round(absalom_sentences_mean$mean_length,0)` words per sentence is at best a rough measure. What is clear though, is that this is significantly longer than other works in English written in the 1930s, which use only about 13 words per sentence [@RN37 233]. The average masks the sheer number of long sentences: `r absalom_sentences_long` sentences exceed 100 words.
 
-The most infamous stylistic feature of *Absalom, Absalom!* is certainly the length of the sentences. In fact, according to the 1983 *Guinness Book of World Records* it holds the dubious record of the longest sentence in the English language - 1,300 words (McWhirter 228). The claim is both absurd because it is an achievement that could easily be bested (PINKER, 83), and inaccurate because James Joyce's *Ulysses* certainly has longer sentences, while Faulkner himself beat his own "record" with a 1,600 word sentence in *Go Down, Moses* (Fargnoli 102). Faulkner's long sentences are more than a matter of trivia, however; they quite literally stretch the very concept of the sentence, and by extension the English language. It is a measure of some comfort that they cause trouble for computers and humans alike. Normally, computing sentence length in a text is a very simple procedure. With *Absalom, Absalom!*, there are so many parenthetical phrases and embedded quotations that it is difficult to detect whether a sentence has ended. It might be more accurate to say that the novel is a collection of clauses occasionally interrupted by punctuation. Given this, the computed average sentence length of `r round(absalom_sentences_mean$mean_length,0)` is therefore at best a rough measure. What is clear though, is that this is significantly longer than other works in English written in the 1930s, which use only about 13 words per sentence (RUDNICKA 233). The average masks the sheer number of long sentences, `r absalom_sentences_long` sentences exceed 100 words.
-
-For Faulkner, these long sentence are more than rhetorical pyrotechnics, they try to capture how the past continuously intrudes upon the present. Asked in an interview about why he wrote such long sentences, Faulkner contends that there is no such thing as "was" because everyone brings their past with them. His long sentences are a way to capture this sensation, "a man, a character in a story at any moment of action is not just himself as he is then, he is all that made him, and the long sentence is an attempt to get his past and possibly his future into the instant in which he does something" [Faulkner 1965]. In a sense, the prose complements the narrative structure, which also sees the past continuously returning.
+For Faulkner, these long sentence are more than rhetorical pyrotechnics, they try to capture how the past continuously intrudes upon the present. Asked in an interview about why he wrote such long sentences, Faulkner contends that there is no such thing as "was" because everyone brings their past with them. His long sentences are a way to capture this sensation, "a man, a character in a story at any moment of action is not just himself as he is then, he is all that made him, and the long sentence is an attempt to get his past and possibly his future into the instant in which he does something" [@faulknerFaulknerUniversityClass1965 84]. In a sense, the prose complements the narrative structure, which also sees the past continuously returning.
 
 ```{r parentheticals}
 
@@ -953,9 +1154,9 @@ parenthetical_sentences <- parenthetical_df %>%
   mutate(percent = total / absalom_length)
 ```
 
-It is rare that the typography of a text is remarkable, but here too *Absalom, Absalom!* distinguishes itself. Faulkner uses up what can only be considered a life time's supply of parentheses - `r str_count(absalom_string, "[()]")` total. These parenthetical statements are used to elucidate, complicate, contradict, and trouble, the "main narrative." They are so frequent and lengthy that a full `r percent(parenthetical_sentences$percent,0)` of the text is enframed. Faulkner adds a layer of complexity to this by "nesting" parentheses. He does this throughout the text, but most intensely in Chapter 6, where the majority of the chapter is actually a parenthetical. Both the frequency and the nesting have been represented visually through the figure below.
+It is rare that the typography of a text is remarkable, but here too *Absalom, Absalom!* distinguishes itself. Faulkner uses what can only be considered a life time's supply of parentheses - `r str_count(absalom_string, "[()]")` total. These parenthetical statements are used to elucidate, complicate, contradict, and trouble, the "main narrative." They are so frequent and lengthy that a full `r percent(parenthetical_sentences$percent[1])` of the text is enframed. Faulkner adds a layer of complexity to this by "nesting" parentheses - putting parentheses inside other parentheses. He does this throughout the text, but most intensely in chapter 6, where the majority of the chapter is actually a parenthetical. Both the frequency and the nesting have been represented visually through the figure below.
 
-```{r plot_parentheses, out.width="768px",  out.height="250px" }
+```{r plot_parentheses, out.width="768px",  out.height="250px", fig.cap= "Figure 4: Snapshort of all parentheses in <i>Absalom, Absalom!</i> ordered by their level of nesting."}
 
 plot_parentheses <- plot_ly(
   parenthetical_all_staggered,
@@ -1011,11 +1212,11 @@ plot_parentheses <- plot_parentheses %>%
 
 plot_parentheses
 
-tags$h6(HTML("<i>Figure 8:</i> Parenthesis usage in <i>Absalom, Absalom!</i>. It is remarkable that Faulkner nests narrative three even four levels deep."), style =fig_caption)
-tags$br()
 ```
 
-The figure shows several salient features of the text purely based on its typography. First, at bottom is the "main text", the text that is not parenthetical. To some extent this appears indistinguishable from the first nesting level: (). In part, this is simply the consequence of trying to cram too many data points into a small space, but it also demonstrates the ubiquity of parenthetical phrases. With some regularity, this first level nesting is further enframed with second level nesting: (()). It is in Chapter 6 though that the text becomes truly overwhelming. In the first couple of pages, it jumps to level one nesting, then second level, and even third ((())), until finally at the apex of the chart Quentin is nested four levels deep, or more colloquially, he is an aside to an aside to an aside to an aside. It is likely a happy accident that Quentin's name is the only one that is so deeply nested, it is certainly unreasonable to expect any reader to discover this Easter egg without considerable effort. Nevertheless, to find Quentin dead-center in the text at the deepest parenthetical level reinforces how much *Absalom, Absalom!* is about him as it is about the Sutpen's. He is always there structuring in haunting the text in his own way.
+The figure shows several salient features of the text purely based on its typography. First, at bottom is the "main text" - the text that is not parenthetical. To some extent this appears indistinguishable from the first nesting level: (). In part, this is simply the consequence of trying to cram too many data points into a small space, but it also demonstrates the ubiquity of parenthetical phrases. With some regularity, this first level nesting is further enframed with second level nesting: (()). The most intense usage of nesting is in chapter 6. In the first couple of pages, the narrative jumps to level one nesting, then second level, and even third ((())), until finally at the apex of the chart Quentin is nested four levels deep, or more colloquially, he is an aside to an aside to an aside to an aside. It is likely a happy accident that Quentin's name is the only one that is so deeply nested, it is certainly unreasonable to expect any reader to discover this Easter egg without considerable effort. To be sure, it is possible that Faulkner himself lost track of the parenthesis, the number of parenthesis in this chapter is uneven. Nevertheless, to find Quentin dead-center in the text at the deepest parenthetical level reinforces how much *Absalom, Absalom!* is about him as it is about the Sutpen's. He is always there haunting the text in his own way.
+
+Along with Quentin's deep nesting, the liberal use of parenthetical also speaks to the texts relationship with storytelling and history. Just as the narrators mix and overlap, so the story constantly branches from the main narrative. These branches continuously draw different information into the story. It is a typographical indicator that no story can ever truly be told one way, but must be told several ways simultaneously.
 
 ```{r unique_words}
 unique_words <- absalom_df %>%
@@ -1040,13 +1241,14 @@ unique_words_count <- unique_words %>%
   nrow()
 ```
 
-Perhaps the most immediately noticeable feature about the text is that it is accentuated with strange words. A number of these words (`r neologisms_count`) are either neologisms created by sticking together two words together to make an adjective - sunbuouyed, hyperdistilled - or negating an existing word - nothusband, unharbingered. Other words are either very uncommon, archaic, or regional, such as faience, gratulations, and lagniappe, respectively. Even more proficient readers should not be embarrassed to consult a dictionary every once in a while. For all this apparent lexical originality, statistically speaking, *Absalom, Absalom!* does not stand out for its word use. There are `r unique_words_count` unique words, which is actually fewer unique words than expected for a text of its length (chacoma 4, Bernhardsson 14). [^6]
+If it were not enough that *Absalom, Absalom!* consists mostly of long digressive and parenthetical sentences, these tend to be accentuated with a recondite vocabulary. A number of these words (`r neologisms_count`) are either neologisms created by sticking two words together to make an adjective - sunbuouyed, hyperdistilled - or negating an existing word - nothusband, unharbingered. Other words are either very uncommon, archaic, or regional, such as faience, gratulations, and lagniappe, respectively. Even more proficient readers should not be embarrassed to consult a dictionary every once in a while. For all this apparent lexical originality, statistically speaking, *Absalom, Absalom!* does not stand out for its word use. There are `r unique_words_count` unique words, which is actually fewer unique words than expected for a text of its length [@chacomaHeapsLawHeaps 4, @bernhardssonMetaBookSizedependent2009 14]. [^7]
 
-[^6]: Heaps' law predicts that that the number of unique words in a text is approximately the square root of the total number of words in a text. $V_R(n)= Kn^\beta$ where $V_R(n)$ is the number of distinct words in corpus $n$. The special parameters $10<K<100$ and $\beta \approx .5$ vary from corpus to corpus.
+[^7]: Heaps' law predicts that that the number of unique words in a text is approximately the square root of the total number of words in a text. $V_R(n)= Kn^\beta$ where $V_R(n)$ is the number of distinct words in corpus $n$. The special parameters $10<K<100$ and $\beta \approx .5$ vary from corpus to corpus.
 
-Yet, for all its linguistic density, it is also a repetitious book. Words and phrases echo throughout the text and evoke the sense that one is rereading a particular passage several times. This effect can be observed in the data about the text as well. Computationally, it is possible to calculate how many phrases repeat over the course of the narrative. Such phrases are called n-grams where *n* indicates the number of words in the phrase. Thus, an n-gram can be two words: Charles Bon, or it can be much longer. The sixteen word sentence, "Then I could give you a decent stall in the stable' and turned and went out" is repeated verbatim twice (151, 229). Meanwhile, the four-word phrase, "the two of them" is repeated twenty-nine times.
+Another element that can be disorienting is that it is also a repetitious book. Words and phrases echo throughout the text and evoke the sense that one is rereading a particular passage several times. This effect can be observed in the data about the text as well. Computationally, it is possible to calculate how many phrases repeat over the course of the narrative. Such phrases are called n-grams where *n* indicates the number of words in the phrase. Thus, an n-gram can be two words: Charles Bon, or it can be much longer. The longest ngram is the sixteen word sentence, "Then I could give you a decent stall in the stable' and turned and went out" is repeated verbatim twice (151, 229). Meanwhile, the four-word phrase, "the two of them" is repeated twenty-nine times.
 
-```{r narrative_language, cache=TRUE}
+```{r narrative_language, eval=FALSE}
+
 
 # Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
 absalom_ngram <- absalom_df %>%
@@ -1054,17 +1256,6 @@ absalom_ngram <- absalom_df %>%
   count(word) %>%
   filter(n > 1) %>%
   mutate (ngram_length = str_count(word, "\\S+"))
-
-#create a helper file.
-# absalom_short <- absalom_ngram %>%
-#   select(word, ngram_length) %>%
-#   arrange(desc(ngram_length))
-
-
-
-#redupe <- absalom_ngram %>%
-#           mutate(duplicate = str_detect(word, #absalom_short$word))
-
 
 deduped <-
   #the map function iterates a function across the entire vector. In this case, search for each string in each string and keep track of the count.
@@ -1085,30 +1276,41 @@ deduped_short <- deduped %>%
 ngrams_filtered <- absalom_ngram %>%
   inner_join(deduped_short)
 
-#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue. 
+#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue.
 ngrams_text_count <- ngrams_filtered %>%
   mutate(text_count =  str_count(absalom_df$text, word))
+```
 
+```{r manual_store_ngrams}
+
+#write_csv(ngrams_text_count, "ngrams_text_count.csv")
+
+ngrams_text_count <- read_csv("ngrams_text_count.csv")
+
+```
+
+```{r n_grams_text count}
 #Calculate text lengths.
 absalom_length <- absalom_df %>%
   unnest_tokens(word, text) %>%
   nrow()
 
 ngrams_word_count <- ngrams_text_count %>%
-  mutate(total_count = ngram_length * text_count) %>%           group_by(ngram_length) %>% 
-  summarise(total = sum(total_count)) %>%  
-  arrange(desc(ngram_length)) %>% 
-  mutate(cum_total = cumsum(total)) %>% 
-  mutate(percent = total / absalom_length) %>% 
-  mutate(cum_percent = cum_total / absalom_length)      
+  mutate(total_count = ngram_length * text_count) %>%              
+  group_by(ngram_length) %>%
+  summarise(total = sum(total_count)) %>%
+  arrange(desc(ngram_length)) %>%
+  mutate(cum_total = cumsum(total)) %>%
+  mutate(percent = total / absalom_length) %>%
+  mutate(cum_percent = cum_total / absalom_length)
 
-ngrams_word_count <- ngrams_word_count %>% 
-                                mutate(title = "absalom")   
+ngrams_word_count <- ngrams_word_count %>%
+  mutate(title = "absalom")   
 ```
 
-Counting ngrams is necessarily a crude measure. It does not take into account very minor variations in phrasing. Rosa repeats the phrase "I hold no brief" six times (9, 12, 127, 131, 132), but she states "I hold no more brief" twice (11, 12). Clearly, both are part of the same lexical pattern, but are counted separately due to the slight variation. Nevertheless, it is still possible to quantify the number of directly repeated phrases in the text. Roughly `r percent(ngrams_word_count$percent[13])` of the texts consists of repeating phrases of four to sixteen words. In isolation, it appears that this is a very repetitive text, but, again, *Absalom* the repetitions fall a more general pattern of ngram distribution in English language works(Le Quon 106) [^7]
+Counting ngrams is necessarily a crude measure. It does not take into account very minor variations in phrasing. Rosa repeats the phrase "I hold no brief" six times (9, 12, 127, 131, 132), but she states "I hold no more brief" twice (11, 12). Clearly, both are part of the same lexical pattern, but are counted separately due to the slight variation. Nevertheless, it is still possible to quantify the number of directly repeated phrases in the text. Roughly `r percent(ngrams_word_count$percent[13])` of the texts consists of repeating phrases of four to sixteen words. In isolation, it appears that this is a very repetitive text, but, again, the repetitions follow a more general pattern of ngram distribution in English language texts [@haExtendingZipfLaw2009 106]. [^8]
 
-[^7]: It appears that ngrams also follow Zipf's law. That is, the word frequency of words is proportional to their rank order. Thus, the second most frequent word will be half as frequent as the the first most frequent, the third most frequent will be one third as frequent and so forth.
+[^8]: It appears that ngrams also follow Zipf's law. That is, the word frequency of words is proportional to their rank order. Thus, the second most frequent word will be half as frequent as the the first most frequent, the third most frequent will be one third as frequent and so forth. One effect that is hard to account for is that there might be common ngrams that tend to appear across a lot of English works that makes separating natural repetitions "he told her that" from authorially unique repetitions, "I hold no brief" quite difficult.
 
 ```{r absalom_character_ngrams}
 character_names <- absalom_events_short %>% 
@@ -1153,8 +1355,6 @@ major_character_ngrams_shared <- major_character_ngrams %>%
   add_count(word, name = "repeated_ngram") %>% 
   filter(repeated_ngram>1)
 
-
-
 major_narrators_ngrams <- absalom_events_short %>%
   filter(PresentMentioned == "Present") %>%
   filter(CharacterName %in% c("Quentin Compson",
@@ -1168,3 +1368,66 @@ major_narrators_ngrams <- absalom_events_short %>%
   arrange(CharacterName, desc(n))
 
 ```
+
+It is statistically difficult to determine what repetitions are unique to *Absalom, Absalom!* and what repetitions are simply a function of prose in English. For example, the 4-gram "I don't hate it," is repeated four times. Meanwhile, the phrase, "in one of the" is repeated seven times, but does not feel particularly unique to the text. Still, it is possible to get a better sense of what role these repetitions play cross matching them with the characters that appear in the events where they occur. Some characters share common phrases, Charles, Henry, Judith, and Sutpen all appear in events with the phrase "the two of them." The Sutpen men all share the common ngram "he would have to." Meanwhile, characters also have signature repetitions. For obvious reasons, "to the West Indies" is repeated around Sutpen eight times. More tellingly, the most common unique phrase for Charles Bon is "he was up to something", repeated seven times. The sustained accretion of certain lexical cues surrounding specific characters models them throughout the text.
+
+Moreover, the constant repetitions also draw attention to the narrativity of narration. Since signature phrases, scenes, and whole lines of inquiry repeat throughout the text, the meaning of each instance changes with each iteration. The same language is constantly cast in a new light, demonstrating that what is being said cannot be separated from how it is being said. It is the linguistic corollary to the repetitions in the plot structure that continuously ask the reader to reevaluate the grounding assumptions of their knowledge.
+
+### Conclusion
+
+
+### Apendix A: Superfluous
+Next to race and class, there is a third way to read the novel through its characters: death. The multiple figurative and literal dead-ends can also be seen as the effect of the plantation system destroying the very social relations it is aiming to maintain. Of the `r total_deaths` characters who die in the novel, only `r deaths_AA$n[3]` (`r percent( deaths_AA$percent[3])`) die of old age - Ikkemotubbe and Rosa - the rest dies by murder (`r percent( deaths_AA$percent[2])`), suicide (`r percent( deaths_AA$percent[2])`), or disease (`r percent( deaths_AA$percent[1])`). The two characters who die peacefully, Ikkemottube and Rosa, are rather poetic book-ends to Sutpen's tale of the destruction. The former is cheated out of his land and displaced, and the latter is cheated out of a marriage and lives as a recluse. The fates of the protagonists are much more grim. Charles Bon is killed by his half-brother, Judith and Charles Etienne who both have transgressive desires across the color line and die of "yellow fever" - a disease that was associated with racial otherness (CLOUGH 96), Clytemnestra starts the fire that kills both she and Henry - eternal physical and spiritual prisoners of Sutpen's Hundred. The only remainder of the Sutpen line is Jim Bond whose incoherent "howling" (300) is a haunting rejoinder to the perverted social system that died before he was born but nonetheless created him. In the end, the plantocratic elite is consumed by the very violence and expropriation that sustained it right up until Civil War. To paraphrase Quentin's father, the entire Sutpen line, and the South more generally, "pays the price for having erected its economic edifice not on the rock of stern morality but on the shifting sands of opportunism and moral brigandage" (209).
+
+
+### Appendix 2: Plot overflow
+
+
+```{r narrators_distinct}
+narrators_distinct <- absalom_events_short %>%
+  separate_rows(narrator, sep = ",") %>%
+  distinct(narrator)  %>%
+  nrow()
+```
+
+Another way to think about the relationship between the lives of the narrators and the communal story of Sutpen, is as a commentary on the nature of historical inquiry. While it may seem that by the end of the narrative, the entire sordid history is dredged up, nothing could be farther from the truth. The narrative introduces so many overlapping and contradictory sources of information that it is hard to distinguish truth from falsehood. There are no fewer than `r narrators_distinct` unique sources of information such as major narrators like Rosa and Mr. Compson, but also artifacts like Bon's letter and town gossip that appears to come from nowhere but shapes the perceptions of each character.
+
+```{r narrator_break_up}
+narrators <- absalom_events_short %>%
+  distinct(EventID, narrator, event_words) %>%
+  separate_rows(narrator, sep = ",") %>%
+  group_by(EventID, event_words) %>%
+  arrange(EventID, narrator) %>%
+  summarize(narrator = str_c(narrator, collapse = ",")) %>%
+  mutate(narrator = ifelse(str_count(narrator, ",") > 0, "Multiple-Sources", narrator)) %>%
+  group_by(narrator) %>%
+  summarize(word_total = sum(event_words)) %>%
+  mutate(narrator = ifelse(word_total < 1910, "Other", narrator)) %>%
+  mutate(narrator = str_trim(narrator)) %>%
+  mutate(percent = word_total / sum(word_total))
+```
+
+Unlike Faulkner's other texts though, these sources of information are not necessarily distinct from one another. Famously, Shreve and Quentin's voices start to merge towards the end of the novel. The critical attention on this section tends to overshadow the fact that much of the novel is being being reconstituted by its narrators through several different sources simultaneously. For instance, when recounting his life story in 1834, Sutpen tells Quentin's grandfather plainly, "So I went to the West Indies" (193), which Quentin repeats to Shreve in 1910. Sutpen, Quentin's grandfather, and Quentin are all sources of the information, even if it seems implausible that this would be a verbatim transmission. Believing this means trusting that Quentin recalls exactly what his grandfather said at an unspecified previous date, and that his grandfather, in turn, remembered a conversation he had at least seventy years previous, late at night, while drinking heavily. This is doubtful.
+
+However problematic establishing the sourcing for each event might be, the *Absalom, Absalom!* coding team director, Steve Railton, has marked all of them. In a sizeable number of cases, the narrative is compiled through multiple-sources (`r percent(narrators$percent[11])`). There is no real way disaggregate these sources from one another. Moreover, this would work against the grain of the text, which is continuously reinforcing the communal nature of historical recollection. This caveat granted, it is possible to bluntly calculate how much each of the `r narrators_distinct` sources contributes to the narrative. Certainly, this is not an exact measure, but the relative differences are quite revealing.
+
+```{r narrators_single}
+narrators_single <- absalom_events_short %>%
+  distinct(EventID, narrator, event_words) %>%
+  separate_rows(narrator, sep = ",") %>%
+  group_by(EventID, event_words) %>%
+  arrange(EventID, narrator) %>%
+  add_count(EventID, name = "event_narrators") %>%
+  mutate(event_words = event_words / event_narrators) %>%
+  group_by(narrator) %>%
+  mutate(narrator = str_trim(narrator)) %>%
+  summarize(word_total = sum(event_words)) %>%
+  mutate(word_total = as.integer(word_total)) %>%
+  #mutate(narrator = ifelse(word_total < 3675, "Other", narrator)) %>% 
+  mutate(percent = word_total/sum(word_total)) %>% 
+  arrange(narrator)
+```
+
+The most prominent source of information is Quentin's father (`r percent(narrators_single$percent[2])`). Meanwhile, Quentin contributes significantly less to the story: `r percent(narrators_single$percent[9])`. Whether this number is low or high is a matter of perspective. On the one hand, as he was first invited by Miss Rosa to listen to her narrative so he could "write about it" and "submit it to the magazines" (5), it makes sense that he would contribute little to a narrative that he presumably does not fully know, even if he already knows part of it by simply "breathing the same air" (7). On the other hand, the dual voice of Shreve and Quentin actually contributes roughly the same amount `r percent(narrators_single$percent[12])`. This basic fact raises far more questions than it answers. If the ostensible point of the book is to uncover the history of the Sutpen family, why does the main historian, Quentin, ultimately cede the story to Shreve who fills in the gaps through flights of fancy? What does it say about historical inquiry if there is no way to establish a reliable source? The main historian, Mr. Compson, lays out a detailed account, but he does not know the most crucial detail: Sutpen's first wife may have been part Black. More broadly, what does it mean when history and storytelling become indistinguishable from one another? It seems to imply that history may have little to do with the events themselves and their facticity, but only with how those events are selected, shaped, and told. That is, history does not exist outside of its telling.
+
+## References

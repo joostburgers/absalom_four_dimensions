@@ -779,3 +779,40 @@ black_white_pre <- dy_events_short %>%
   mutate(percent = n / sum(n))
 ```
 
+
+
+```{r}
+#Tried to make a sunburst. Couldn't get it to work
+
+weight_count_sunburst <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>%
+  distinct(EventID, CharacterName, Race, event_words) %>%
+  group_by(CharacterName) %>%
+  mutate (char_word_total = sum(event_words)) %>%
+  distinct(CharacterName, .keep_all = TRUE) %>%
+  group_by(Race) %>%
+  mutate(race_word_total = sum(char_word_total)) %>%
+   mutate(race_percent = char_word_total/sum(char_word_total)) %>%
+  top_n(char_word_total, n = 5) %>%
+  arrange(Race, desc(char_word_total)) %>%
+  mutate (parent = if_else(Race==Race[row_number(Race)+1],"", Race)) %>%
+  mutate (parent = if_else(is.na(parent), Race,"")) %>%
+  mutate (CharacterName = if_else(str_length(parent)>1,"",CharacterName)) %>%
+  mutate (char_word_total = if_else(str_length(parent)>1,race_word_total,char_word_total))
+
+write_csv(weight_count_sunburst, "sunburst.csv")
+
+sunburst <- plot_ly(
+            weight_count_sunburst,
+             labels=~CharacterName,
+    parents=~parent,
+    values=~char_word_total,
+    type = 'sunburst'
+)
+
+sunburst
+
+
+
+```
+
