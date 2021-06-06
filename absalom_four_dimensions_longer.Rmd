@@ -538,7 +538,7 @@ hybrid_locations <- location_frequency %>%
 map_annotation <- read_csv("hybrid_locations.csv")
 ```
 
-```{r plot_locations_map, out.width="768px",  out.height="605px", fig.cap="Figure 2: All locations in <i>Absalom, Absalom!<i>. The map underscores the global scale of the novel."}
+```{r plot_locations_map, out.width="768px",  out.height="605px"}
 
 
 image_file <-
@@ -653,9 +653,9 @@ Reading the map from left to right, several important features are visible. Imme
 
 Beyond these locations, the global connections enmesh the text in the larger transatlantic circuit. The extensive distance of these locations suggests that the plantation system is not only maintained through intimate social relations, but also reticulated across a network interlocking spaces. The various characters use these spaces to continuously displace the evils of slavery onto a place "somewhere else," and thereby keep their own moral complicity at a distance. Rosa places the enslavement in Yoknapatawpha on a continuum with an "old quiet country like Virginia or Carolina," as if its continued practice were a natural evolution (11). Charles Bon's marriage to an "octoroon" mistress is possible because New Orleans is a sinful places, and the home of a thousand men "without honor or principle" who produced these women and ensnare them into concubinage (91). The town fears Sutpen's "wild stock" of African captives will mix with their "tame" enslaved peoples (48). To the people of the town, Haiti is an economic and cultural entrepôt between the New World and the Old, or as Quentin's grandfather describes it, "the halfway point between what we call the jungle and what we call civilization" (202). Rather than Sutpen's Hundred, the "little island" becomes the true "theatre for violence and injustice" (202). The original sin of slavery is again displaced from South. This time onto an Edenic island in the Caribbean.
 
-The displacement of slavery onto Haiti is striking. Haiti became the first Black republic in the Western Hemisphere in 1804, and thus abolished slavery several years before Sutpen was even born. This historical discrepancy has spawned a substantial critical debate (See for example: [@goddenAbsalomAbsalomHaiti1994; @matthewsRecallingWestIndies2004; @stanchichHiddenCaribbeanOther1996]). Most recently, Wanda Raiford has made the provocative argument that the elision of the historical Haiti and its unqualified acceptance by every listener in the text, also implicates the reader in the erasure of US imperial history and Black agency [@RN27 103]. Extending this logic, Haiti becomes the primordial site onto which to project the evils of slavery. In doing so, General Compson and indeed the entire Compson line, deflect any historical guilt for their violent subjugation of other human beings. If anything, the "wild" form of slavery in the non-existent version of Haiti, sanctions the "tame" enslavement in the "civilized" US South.
+The displacement of slavery onto Haiti is both galling and puzzling. Haiti became the first Black republic in the Western Hemisphere in 1804, and thus abolished slavery several years before Sutpen was even born. This historical discrepancy has spawned a substantial critical debate (See for example: [@goddenAbsalomAbsalomHaiti1994; @matthewsRecallingWestIndies2004; @stanchichHiddenCaribbeanOther1996]). Most recently, Wanda Raiford has made the provocative argument that the elision of the historical Haiti and its unqualified acceptance by every listener in the text, also implicates the reader in the erasure of US imperial history and Black agency [@RN27 103]. Extending this logic, Haiti becomes the primordial site onto which to project the evils of slavery. In doing so, General Compson and indeed the entire Compson line, deflect any historical guilt for their violent subjugation of other human beings. If anything, the "wild" form of slavery in the non-existent version of Haiti, sanctions the "tame" enslavement in the "civilized" US South.
 
-As the constellation of locations suggests, the plantation system does not stop neatly at the Mason-Dixon line, no matter how much both Quentin and Shreve try to contain it in the South. Despite its role in the abolitionist movement, Harvard, directly and indirectly profited from slavery [@RN40 226?]. Historically, Quentin is following in the footsteps of other sons of slave owners and, later, former slave owners who went to Harvard and other elite Northern institutions to be conferred a degree and respectability [@RN40 238]. Though not explicitly stated in *Absalom, Absalom*, in the *Sound and the Fury* it is clear that the tract of land Quentin's father sells to send his son to school belonged to the Compson plantation. The price of tuition is paid for through his historical connection to enslavement.
+As the constellation of locations suggests, the plantation system does not stop neatly at the Mason-Dixon line, no matter how much both Quentin and Shreve try to contain it in the South. Despite its role in the abolitionist movement, Harvard, directly and indirectly profited from slavery [@RN40 226?] (Beckert ET AL, 226?). Historically, Quentin is following in the footsteps of other sons of slave owners and, later, former slave owners who went to Harvard and other elite institutions to be conferred a degree and respectability [@RN40 238]. Though not explicitly stated in *Absalom, Absalom*, in the *Sound and the Fury* it is clear that the tract of land Quentin's father sells to send his son to school belonged to the Compson plantation. The price of tuition is paid for through his historical connection to enslavement.
 
 The only one who appears fully disconnected from the system of human bondage that shaped the transatlantic world is Shreve. As a Canadian outsider and someone unfamiliar with the South, this is ostensibly all alien to him. Yet, he and Quentin are still connected by the same River, the "Continental Trough" and "geologic umbilical" that runs from Mississippi to Edmonton (208). The waterways that bring together the two Harvard classmen were also used to ferry enslaved people, their commodities, and ideas that supported these social relations north and south. Through these arteries it appears that Shreve has inherited the plantation system's perverse racial logic. While Quentin is famously ambivalent about his relationship with the South and its troubled past, Shreve's vision of the region and the future it portends is one of white racial suicide. He prophesies that "the Jim Bonds are going to conquer the western hemisphere" and fears that in "a few thousand years, I who regard you will also have sprung form the loins of African kings" (302). It is unclear how much of this is Shreve's trademark flippancy, but even in his glib sermonizing about the fate of the western world, he reveals profound anxieties over the disappearance of "pure" White people. He claims that the future Jim Bonds might "bleach out" as they reach the poles, but it will "still be Jim Bond" suggesting that Black heritage represents an inferiority beyond skin color. Shreve's own obsessions with race show that the legacy of enslavement cannot be told through one individual family, region, or, even country, but is, in fact, the origin story of the western world.
 
@@ -1215,20 +1215,11 @@ plot_parentheses <- plot_parentheses %>%
     font = plot_font
 )
 
-plot_parentheses <-  plot_parentheses %>% 
-  config(
-    toImageButtonOptions = list(
-      format = "png",
-      width = 768,
-      height = 250
-    )
-  )
-
 plot_parentheses
 
 ```
 
-The figure shows several salient features of the text purely based on its typography. First, at bottom is the "main text" - the text that is not parenthetical. To some extent this appears indistinguishable from the first nesting level: (). In part, this is simply the consequence of trying to cram too many data points into a small space, but it also demonstrates the ubiquity of parenthetical phrases. With some regularity, this first level nesting is further enframed with second level nesting: (()). The most intense usage of nesting is in chapter 6. In the first couple of pages, the narrative jumps to level one nesting, then second level, and even third ((())), until finally at the apex of the chart Quentin is nested four levels deep, or more colloquially, he is an aside to an aside to an aside to an aside. It is likely a happy accident that Quentin's name is the only one that is so deeply nested, it is certainly unreasonable to expect any reader to discover this Easter egg without considerable effort. To be sure, it is possible that Faulkner himself lost track of the parenthesis, the number of parenthesis in this chapter is uneven. Nevertheless, to find Quentin dead-center in the text at the deepest parenthetical level reinforces how much *Absalom, Absalom!* is about his confrontation with the past, as it is about the sordid history of the Sutpens.
+The figure shows several salient features of the text purely based on its typography. First, at bottom is the "main text" - the text that is not parenthetical. To some extent this appears indistinguishable from the first nesting level: (). In part, this is simply the consequence of trying to cram too many data points into a small space, but it also demonstrates the ubiquity of parenthetical phrases. With some regularity, this first level nesting is further enframed with second level nesting: (()). The most intense usage of nesting is in chapter 6. In the first couple of pages, the narrative jumps to level one nesting, then second level, and even third ((())), until finally at the apex of the chart Quentin is nested four levels deep, or more colloquially, he is an aside to an aside to an aside to an aside. It is likely a happy accident that Quentin's name is the only one that is so deeply nested, it is certainly unreasonable to expect any reader to discover this Easter egg without considerable effort. To be sure, it is possible that Faulkner himself lost track of the parenthesis, the number of parenthesis in this chapter is uneven. Nevertheless, to find Quentin dead-center in the text at the deepest parenthetical level reinforces how much *Absalom, Absalom!* is about him as it is about the Sutpen's. He is always there haunting the text in his own way.
 
 Along with Quentin's deep nesting, the liberal use of parenthetical also speaks to the texts relationship with storytelling and history. Just as the narrators mix and overlap, so the story constantly branches from the main narrative. These branches continuously draw different information into the story. It is a typographical indicator that no story can ever truly be told one way, but must be told several ways simultaneously.
 
@@ -1259,9 +1250,11 @@ If it were not enough that *Absalom, Absalom!* consists mostly of long digressiv
 
 [^7]: Heaps' law predicts that that the number of unique words in a text is approximately the square root of the total number of words in a text. $V_R(n)= Kn^\beta$ where $V_R(n)$ is the number of distinct words in corpus $n$. The special parameters $10<K<100$ and $\beta \approx .5$ vary from corpus to corpus.
 
-Another element that can be disorienting is that it is also a repetitious book. Words, phrases, scenes, and narrators echo one another throughout the text and evoke the sense that one is rereading a particular passage several times [@rio-jelliffeAbsalomAbsalomSelfReflexive1981b 76]. This effect can be observed in the data about the text as well. Computationally, it is possible to calculate how many phrases repeat over the course of the narrative. Such phrases are called n-grams where *n* indicates the number of words in the phrase. Thus, an n-gram can be two words: Charles Bon, or it can be much longer. The longest n-gram is the sixteen word sentence, "Then I could give you a decent stall in the stable' and turned and went out" is repeated verbatim twice (151, 229). Meanwhile, the four-word phrase, "the two of them" is repeated twenty-nine times.
+Another element that can be disorienting is that it is also a repetitious book. Words and phrases echo throughout the text and evoke the sense that one is rereading a particular passage several times. This effect can be observed in the data about the text as well. Computationally, it is possible to calculate how many phrases repeat over the course of the narrative. Such phrases are called n-grams where *n* indicates the number of words in the phrase. Thus, an n-gram can be two words: Charles Bon, or it can be much longer. The longest ngram is the sixteen word sentence, "Then I could give you a decent stall in the stable' and turned and went out" is repeated verbatim twice (151, 229). Meanwhile, the four-word phrase, "the two of them" is repeated twenty-nine times.
 
 ```{r narrative_language, eval=FALSE}
+
+
 # Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
 absalom_ngram <- absalom_df %>%
   unnest_ngrams(word, text, n_min = 4, n = 16) %>%
@@ -1322,7 +1315,7 @@ ngrams_word_count <- ngrams_word_count %>%
 
 Counting ngrams is necessarily a crude measure. It does not take into account very minor variations in phrasing. Rosa repeats the phrase "I hold no brief" six times (9, 12, 127, 131, 132), but she states "I hold no more brief" twice (11, 12). Clearly, both are part of the same lexical pattern, but are counted separately due to the slight variation. Nevertheless, it is still possible to quantify the number of directly repeated phrases in the text. Roughly `r percent(ngrams_word_count$percent[13])` of the texts consists of repeating phrases of four to sixteen words. In isolation, it appears that this is a very repetitive text, but, again, the repetitions follow a more general pattern of ngram distribution in English language texts [@haExtendingZipfLaw2009 106]. [^8]
 
-[^8]: It appears that ngrams also follow Zipf's law. That is, the word frequency of words is proportional to their rank order. Thus, the second most frequent word will be half as frequent as the the first most frequent, the third most frequent will be one third as frequent and so forth. 
+[^8]: It appears that ngrams also follow Zipf's law. That is, the word frequency of words is proportional to their rank order. Thus, the second most frequent word will be half as frequent as the the first most frequent, the third most frequent will be one third as frequent and so forth. One effect that is hard to account for is that there might be common ngrams that tend to appear across a lot of English works that makes separating natural repetitions "he told her that" from authorially unique repetitions, "I hold no brief" quite difficult.
 
 ```{r absalom_character_ngrams}
 character_names <- absalom_events_short %>% 
@@ -1385,8 +1378,61 @@ It is statistically difficult to determine what repetitions are unique to *Absal
 
 Moreover, the constant repetitions also draw attention to the narrativity of narration. Since signature phrases, scenes, and whole lines of inquiry repeat throughout the text, the meaning of each instance changes with each iteration. The same language is constantly cast in a new light, demonstrating that what is being said cannot be separated from how it is being said. It is the linguistic corollary to the repetitions in the plot structure that continuously ask the reader to reevaluate the grounding assumptions of their knowledge.
 
-## Conclusion
+### Conclusion
 
 
+### Apendix A: Superfluous
+Next to race and class, there is a third way to read the novel through its characters: death. The multiple figurative and literal dead-ends can also be seen as the effect of the plantation system destroying the very social relations it is aiming to maintain. Of the `r total_deaths` characters who die in the novel, only `r deaths_AA$n[3]` (`r percent( deaths_AA$percent[3])`) die of old age - Ikkemotubbe and Rosa - the rest dies by murder (`r percent( deaths_AA$percent[2])`), suicide (`r percent( deaths_AA$percent[2])`), or disease (`r percent( deaths_AA$percent[1])`). The two characters who die peacefully, Ikkemottube and Rosa, are rather poetic book-ends to Sutpen's tale of the destruction. The former is cheated out of his land and displaced, and the latter is cheated out of a marriage and lives as a recluse. The fates of the protagonists are much more grim. Charles Bon is killed by his half-brother, Judith and Charles Etienne who both have transgressive desires across the color line and die of "yellow fever" - a disease that was associated with racial otherness (CLOUGH 96), Clytemnestra starts the fire that kills both she and Henry - eternal physical and spiritual prisoners of Sutpen's Hundred. The only remainder of the Sutpen line is Jim Bond whose incoherent "howling" (300) is a haunting rejoinder to the perverted social system that died before he was born but nonetheless created him. In the end, the plantocratic elite is consumed by the very violence and expropriation that sustained it right up until Civil War. To paraphrase Quentin's father, the entire Sutpen line, and the South more generally, "pays the price for having erected its economic edifice not on the rock of stern morality but on the shifting sands of opportunism and moral brigandage" (209).
+
+
+### Appendix 2: Plot overflow
+
+
+```{r narrators_distinct}
+narrators_distinct <- absalom_events_short %>%
+  separate_rows(narrator, sep = ",") %>%
+  distinct(narrator)  %>%
+  nrow()
+```
+
+Another way to think about the relationship between the lives of the narrators and the communal story of Sutpen, is as a commentary on the nature of historical inquiry. While it may seem that by the end of the narrative, the entire sordid history is dredged up, nothing could be farther from the truth. The narrative introduces so many overlapping and contradictory sources of information that it is hard to distinguish truth from falsehood. There are no fewer than `r narrators_distinct` unique sources of information such as major narrators like Rosa and Mr. Compson, but also artifacts like Bon's letter and town gossip that appears to come from nowhere but shapes the perceptions of each character.
+
+```{r narrator_break_up}
+narrators <- absalom_events_short %>%
+  distinct(EventID, narrator, event_words) %>%
+  separate_rows(narrator, sep = ",") %>%
+  group_by(EventID, event_words) %>%
+  arrange(EventID, narrator) %>%
+  summarize(narrator = str_c(narrator, collapse = ",")) %>%
+  mutate(narrator = ifelse(str_count(narrator, ",") > 0, "Multiple-Sources", narrator)) %>%
+  group_by(narrator) %>%
+  summarize(word_total = sum(event_words)) %>%
+  mutate(narrator = ifelse(word_total < 1910, "Other", narrator)) %>%
+  mutate(narrator = str_trim(narrator)) %>%
+  mutate(percent = word_total / sum(word_total))
+```
+
+Unlike Faulkner's other texts though, these sources of information are not necessarily distinct from one another. Famously, Shreve and Quentin's voices start to merge towards the end of the novel. The critical attention on this section tends to overshadow the fact that much of the novel is being being reconstituted by its narrators through several different sources simultaneously. For instance, when recounting his life story in 1834, Sutpen tells Quentin's grandfather plainly, "So I went to the West Indies" (193), which Quentin repeats to Shreve in 1910. Sutpen, Quentin's grandfather, and Quentin are all sources of the information, even if it seems implausible that this would be a verbatim transmission. Believing this means trusting that Quentin recalls exactly what his grandfather said at an unspecified previous date, and that his grandfather, in turn, remembered a conversation he had at least seventy years previous, late at night, while drinking heavily. This is doubtful.
+
+However problematic establishing the sourcing for each event might be, the *Absalom, Absalom!* coding team director, Steve Railton, has marked all of them. In a sizeable number of cases, the narrative is compiled through multiple-sources (`r percent(narrators$percent[11])`). There is no real way disaggregate these sources from one another. Moreover, this would work against the grain of the text, which is continuously reinforcing the communal nature of historical recollection. This caveat granted, it is possible to bluntly calculate how much each of the `r narrators_distinct` sources contributes to the narrative. Certainly, this is not an exact measure, but the relative differences are quite revealing.
+
+```{r narrators_single}
+narrators_single <- absalom_events_short %>%
+  distinct(EventID, narrator, event_words) %>%
+  separate_rows(narrator, sep = ",") %>%
+  group_by(EventID, event_words) %>%
+  arrange(EventID, narrator) %>%
+  add_count(EventID, name = "event_narrators") %>%
+  mutate(event_words = event_words / event_narrators) %>%
+  group_by(narrator) %>%
+  mutate(narrator = str_trim(narrator)) %>%
+  summarize(word_total = sum(event_words)) %>%
+  mutate(word_total = as.integer(word_total)) %>%
+  #mutate(narrator = ifelse(word_total < 3675, "Other", narrator)) %>% 
+  mutate(percent = word_total/sum(word_total)) %>% 
+  arrange(narrator)
+```
+
+The most prominent source of information is Quentin's father (`r percent(narrators_single$percent[2])`). Meanwhile, Quentin contributes significantly less to the story: `r percent(narrators_single$percent[9])`. Whether this number is low or high is a matter of perspective. On the one hand, as he was first invited by Miss Rosa to listen to her narrative so he could "write about it" and "submit it to the magazines" (5), it makes sense that he would contribute little to a narrative that he presumably does not fully know, even if he already knows part of it by simply "breathing the same air" (7). On the other hand, the dual voice of Shreve and Quentin actually contributes roughly the same amount `r percent(narrators_single$percent[12])`. This basic fact raises far more questions than it answers. If the ostensible point of the book is to uncover the history of the Sutpen family, why does the main historian, Quentin, ultimately cede the story to Shreve who fills in the gaps through flights of fancy? What does it say about historical inquiry if there is no way to establish a reliable source? The main historian, Mr. Compson, lays out a detailed account, but he does not know the most crucial detail: Sutpen's first wife may have been part Black. More broadly, what does it mean when history and storytelling become indistinguishable from one another? It seems to imply that history may have little to do with the events themselves and their facticity, but only with how those events are selected, shaped, and told. That is, history does not exist outside of its telling.
 
 ## References
