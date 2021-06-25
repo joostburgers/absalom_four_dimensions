@@ -5,8 +5,8 @@ output:
   html_document:
     theme: yeti
     df_print: paged
-  word_document:
-    reference_docx: "absalom_template.docx"
+  word_document: 
+    reference_docx: absalom_template.docx
 bibliography: absalom_bibliography.bib
 csl: modern-language-association.csl
 always_allow_html: true
@@ -152,7 +152,7 @@ Using *DY* and its rich data sets, it is possible to investigate *Absalom, Absal
 
 A well-worn quip about *Absalom, Absalom!* is that it is not a whodunit, but rather a why-done-it. Within the first several pages, the basic facts of the case are laid out: Henry Sutpen shoots his sister's fiancé, Charles Bon, on the day of their wedding. The remainder of the narrative is dedicated to unspooling the various lines of inquiry into why Henry was motivated to shoot Bon. The answer is integral to the Sutpen family story, and serves as a commentary on the history of slavery in America more generally. In many respects, then, *Absalom, Absalom!* is a character study of the Sutpen family.
 
-To understand the various family dynamics, it is useful to think through the individual characters, and also the larger demography of the text. *Digital Yoknapatawpha* is particularly useful in this regard. Not only can users pull up the biographies of each individual character, it is also possible to aggregate and group the data to render a more detailed portrait of the various characters in relation to one another. This data is, to be sure, highly interpretive. For instance, the text suggests that Charles Bon is part Black, but this is all based on speculation, and none of the narrators have ever actually seen Bon. Nevertheless, in the database, Bon is entered as being MixedBlackWhite, because so much of the plot revolves around this possibility.
+To understand the various family dynamics, it is useful to think through the individual characters, and also the larger demography of the text. *Digital Yoknapatawpha* is particularly useful in this regard. Not only can users pull up the biographies of each individual character, it is also possible to aggregate and group the data to render a more detailed portrait of the various characters in relation to one another. This data is, to be sure, highly interpretive. For instance, the text suggests that Charles Bon is part Black, but this is all based on speculation, and none of the narrators have ever actually seen Bon. Nevertheless, in the database, Bon is entered as being "MixedBlackWhite," because so much of the plot revolves around this possibility.
 
 ```{r general_overview}
 #Unique Characters
@@ -265,10 +265,15 @@ In his own maps of Yoknapatawpha, Faulkner actually flips this ratio and claims 
 ```{r weight_count}
 weight_count <- absalom_events_short %>%
   filter(PresentMentioned == "Present") %>%
-  distinct(EventID, Race, event_words) %>%
+ # distinct(EventID, Race, .keep_all = TRUE) %>% 
   group_by(Race) %>%
   summarize(word_total = sum(event_words)) %>%
-  mutate(percent = round(word_total / sum(word_total),2))
+  mutate(percent = round(word_total / sum(word_total),2)) %>% 
+  filter(percent >0)
+  
+#look into this calculation. Need to account for the number of white people in the actual scene.
+
+
 ```
 
 This point is further amplified when character presence is taken into consideration. Using the event data, it is possible to calculate how often an individual character is present in an event and for how long.[^4] This measure is comparable to how much "screen time" a particular character might get in a movie. The distinction is significant. For example, the extraterrestrial being in the movie is *E.T.* represents a demographic count of one, but has a lot of screen time because they are the main character. In *Absalom, Absalom!* the contrast between the the raw demographic count and how long characters are present in events is quite revealing.
@@ -327,10 +332,10 @@ plot_demography <- plot_demography %>% add_annotations(
   
 )
 
-plot_demography <-  plot_demography %>% 
+plot_demography <-  plot_demography %>%
   config(
     toImageButtonOptions = list(
-      format = "png",
+      format = "svg",
       width = 1024,
       height = 605
     )
@@ -354,10 +359,9 @@ total_present_length <- absalom_events_short %>%
 
 character_appearances <- absalom_events_short %>%
   filter(PresentMentioned == "Present") %>%
-  #distinct(CharacterName, .keep_all = TRUE) %>%
-  group_by(CharacterName) %>%
+    group_by(CharacterName, Race) %>%
   summarize(word_total = sum(event_words)) %>%
-  mutate(percent = word_total / total_present_length$total_words[1]) %>%
+  mutate(percent = word_total / total_present_length$total_words[1]) %>% 
   filter(
     CharacterName %in% c(
       "Clytemnestra",
@@ -424,7 +428,7 @@ old_age <- absalom_events_short %>%
 
 ```
 
-## Part 2 Locations:
+## Part 2: Locations
 
 ### "the *Be Sutpen's Hundred* like the oldentime *Be Light*"
 
@@ -436,12 +440,22 @@ locations <- absalom_events_short %>%
     "Sutpen Place",
     LocationTitle
   )) %>%
-  distinct(EventID, .keep_all = TRUE) %>%
+  distinct(EventID, .keep_all = TRUE) 
   group_by(new_location) %>%
   summarise(total_words = sum(event_words)) %>%
   mutate(percent = total_words / sum(total_words)) %>%
   filter(new_location == "Sutpen Place")
 
+```
+
+```{r outofYok}
+outof_yok_locations <- absalom_events_short %>%
+  mutate(outyok = ifelse(X > 2300, "OutofYok", "InYok"
+    )) %>%
+  distinct(EventID, .keep_all = TRUE) %>% 
+  group_by(outyok) %>%
+  summarise(total_words = sum(event_words)) %>%
+  mutate(percent = total_words / sum(total_words)) 
 ```
 
 ```{r sutpen_places}
