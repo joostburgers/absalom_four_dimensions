@@ -2,18 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
-absalom_cleaned_to_match_4_30_rev4.txt
-as_I_lay_dying_william_faulkner.txt
-great_expectations_dickens.txt
-huckleberry_finn_mark_twain.txt
-light_in_august_william_faulkner.txt
-moby_dick_herman_melville.txt
-sound_and_the_fury_william_faulkner.txt
-third_clean.txt
-ngram_supplement.Rmd
-faulkner_absalom_parentheses_test.txt
-absalom_four_dimensions.docx
-Burgers Absalom in Four Dimensions.docx
-absalom_four_dimensions_6_24.html
-Burgers, absalom_four_dimensions_rev_6_28.docx
-absalom_four_dimensions_7_08.html
+
+old/
+protected_data/
