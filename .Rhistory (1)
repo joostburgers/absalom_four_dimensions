@@ -1,0 +1,512 @@
+OrderWithinPage,
+n = 1,
+default = last(OrderWithinPage)
+)) %>%
+mutate(EventLength = OrderPageEnd - OrderWithinPage) %>%
+relocate(OrderPageEnd:EventLength, .after = OrderWithinPage) %>%
+mutate(NarrativeStatus = str_replace_all(NarrativeStatus, "\\+", ""))
+absalom_chronology_bw <-  absalom_chronology %>%
+pivot_wider(names_from = "NarrativeStatus",
+values_from = Chrono)
+absalom_jump <- absalom_chronology %>%
+mutate(Chrono2 = lag(Chrono, default = Chrono[1])) %>%
+mutate(difference = Chrono - Chrono2) %>%
+mutate(
+jump = case_when(
+difference < 0 ~ "flashback",
+difference > 1 ~ "flashforward",
+difference <= 1 ~ "linear"
+)
+) %>%
+count(jump) %>%
+mutate(percent = n / sum(n))
+narrative_present <- absalom_chronology %>%
+mutate(StartDate = as_date(StartDate)) %>%
+mutate(temporality = ifelse(StartDate >= StartDate[1], "Narrative Present", "Past")) %>%
+group_by(temporality) %>%
+summarise(total_words = sum(event_words)) %>%
+mutate(percent = total_words / sum(total_words))
+absalom_status <- absalom_chronology %>%
+group_by(NarrativeStatus) %>%
+summarise(total_words = sum(event_words)) %>%
+mutate(percent = total_words / sum(total_words))
+#creates a clean csv for export. Not necessary
+#chronology_annotations_export <- absalom_chronology %>%
+#  select(4, 8:9, 11, 14)
+#write_csv(chronology_annotations_export, "annotations_export.csv")
+chrono_ann_import <- read_csv("annotations_import.csv")
+chrono_ann_import_secondary <-
+read_csv("annotations_import_secondary.csv")
+chrono_ann_import <- chrono_ann_import %>%
+drop_na(event)
+chapters_single <- absalom_chronology %>%
+distinct(chapter, .keep_all = TRUE) %>%                             select(OrderWithinPage, chapter)
+plot_aa_bw <- plot_ly(
+absalom_chronology_bw,
+x = ~ OrderWithinPage,
+y = ~ Narrated,
+name = 'Narrated',
+type = 'scatter',
+mode = 'markers',
+marker = list(
+symbol = 'square',
+line = list(
+width = 1,
+color = "#000000",
+opacity = 1
+),
+color = "#FFFFFF",
+opacity = .6
+),
+hovertemplate = paste(
+'Page: %{x}',
+'<br>',
+'Narrative Status: Narrated',
+'<br>',
+'Chronological Order: %{y}',
+'<br>',
+'Start Date:',
+absalom_chronology_bw$StartDate,
+'<br>',
+'Summary:',
+'<br>',
+absalom_chronology_bw$Summary,
+'<extra></extra>'
+)
+)
+plot_aa_bw <- plot_aa_bw %>% add_trace(
+x = ~ OrderWithinPage,
+y = ~ Told,
+name = 'Told',
+type = 'scatter',
+mode = 'markers',
+marker = list(
+symbol = "circle",
+line = list(
+width = 1,
+color = "#000000",
+opactiy = 1
+),
+color = "#D4D4D4",
+opacity = .6
+),
+hovertemplate = paste(
+'Page: %{x}',
+'<br>',
+'Narrative Status: Told',
+'<br>',
+'Chronological Order: %{y}',
+'<br>',
+'Start Date:',
+absalom_chronology_bw$StartDate,
+'<br>',
+'Summary:',
+'<br>',
+absalom_chronology_bw$Summary,
+'<extra></extra>'
+)
+)
+plot_aa_bw <- plot_aa_bw %>% add_trace(
+x = ~ OrderWithinPage,
+y = ~ Remembered,
+legendgroup = "Other",
+name = paste('Remembered<br>Hypothesized<br>Narrated+Consciousness'),
+type = 'scatter',
+mode = 'markers',
+marker = list(
+symbol = "diamond",
+line = list(
+width = 1,
+color = "#000000",
+opacity = 1
+),
+color = "#494848",
+opacity = .6
+),
+hovertemplate = paste(
+'Page: %{x}',
+'<br>',
+'Narrative Status: Remembered',
+'<br>',
+'Chronological Order: %{y}',
+'<br>',
+'Start Date:',
+absalom_chronology_bw$StartDate,
+'<br>',
+'Summary:',
+'<br>',
+absalom_chronology_bw$Summary,
+'<extra></extra>'
+)
+)
+plot_aa_bw <- plot_aa_bw %>% add_trace(
+x = ~ OrderWithinPage,
+y = ~ Hypothesized,
+legendgroup = "Other",
+name = 'Other',
+showlegend = FALSE,
+type = 'scatter',
+mode = 'markers',
+marker = list(
+symbol = "diamond",
+line = list(width = 1,
+color = "#000000"),
+color = "#494848"
+),
+hovertemplate = paste(
+'Page: %{x}',
+'<br>',
+'Narrative Status: Hypothesized',
+'<br>',
+'Chronological Order: %{y}',
+'<br>',
+'Start Date:',
+absalom_chronology_bw$StartDate,
+'<br>',
+'Summary:',
+'<br>',
+absalom_chronology_bw$Summary,
+'<extra></extra>'
+)
+)
+plot_aa_bw <- plot_aa_bw %>% add_trace(
+x = ~ OrderWithinPage,
+y = ~ NarratedConsciousness,
+legendgroup = "Other",
+name = 'Other',
+type = 'scatter',
+showlegend = FALSE,
+mode = 'markers',
+marker = list(
+symbol = "diamond",
+line = list(width = 1, color = "#000000"),
+color = "#494848"
+),
+hovertemplate = paste(
+'Page: %{x}',
+'<br>',
+'Narrative Status: Narrated+Consciousness',
+'<br>',
+'Chronological Order: %{y}',
+'<br>',
+'Start Date:',
+absalom_chronology_bw$StartDate,
+'<br>',
+'Summary:',
+'<br>',
+absalom_chronology_bw$Summary,
+'<extra></extra>'
+)
+)
+plot_aa_bw <-  plot_aa_bw %>%
+layout(
+title = list(text = "Plot Structure Chart: <i>Absalom, Absalom!</i>"),
+xaxis = list(
+tickmode = 'array',
+tickvals = chapters_single$OrderWithinPage,
+ticktext = chapters_single$chapter,
+gridwidth = 1.5,
+title = list(text = "Chapter")
+),
+font = plot_font,
+yaxis = list(title = list(text = "Chronology"),
+showgrid = FALSE),
+autosize = FALSE,
+width = 1024,
+height = 400
+)
+plot_aa_bw <- plot_aa_bw %>%
+add_annotations(
+x = chrono_ann_import$OrderWithinPage,
+y = chrono_ann_import$Chrono,
+text = chrono_ann_import$event,
+xref = "x",
+yref = "y",
+showarrow = TRUE,
+arrowhead = 3,
+arrowwidth = 1,
+arrowsize = .5,
+ax = chrono_ann_import$xoffset,
+ay = chrono_ann_import$yoffset,
+font = list(color = chrono_ann_import$fontcolor),
+bgcolor = chrono_ann_import$bgcolor,
+borderpad = 0,
+borderwidth = 0
+)
+plot_aa_bw <- plot_aa_bw %>%
+add_annotations(
+x = chrono_ann_import_secondary$OrderWithinPage,
+y = chrono_ann_import_secondary$Chrono,
+text = chrono_ann_import_secondary$event,
+xref = "x",
+yref = "y",
+showarrow = TRUE,
+arrowhead = 3,
+arrowwidth = 1,
+arrowsize = .5,
+ax = chrono_ann_import_secondary$xoffset,
+ay = chrono_ann_import_secondary$yoffset,
+font = list(color = "rgba(255,255,255,0)"),
+bgcolor = "rgba(255,255,255,0)",
+borderpad = 0,
+borderwidth = 0
+)
+plot_aa_bw <-  plot_aa_bw %>%
+config(
+toImageButtonOptions = list(
+format = "png",
+width = 1024,
+height = 400
+)
+)
+plot_aa_bw
+absalom_clean <- absalom_txt %>%
+mutate(text = gsub("[,\\!\\?\\.](?=[^’‘]*’[\\s—-])"," ",text, perl=TRUE))
+#Regex explained:
+#[,\\!\\?\\.] find any of !,?.
+#(?=[^’‘] not followed by curly quote. The closing curly quote is counterintuitive here, but it helps exclude 's as in Sutpen's. Instead, we want all curly quotes followed with a white space \s:
+#*’[\\s—-]) the en and em dash are there because sometimes these can abutt the closing curly quote.
+absalom_sentences <- absalom_clean %>%
+unnest_regex(word, text, "[.?!]") %>%
+mutate (string_length = str_count(word, "\\S+"))
+absalom_sentences_mean <-  absalom_sentences %>%
+summarize(mean_length = mean(absalom_sentences$string_length))
+absalom_sentences_long <- absalom_sentences %>%
+filter(string_length > 99) %>%
+nrow()
+#NOTE: The amount of parentheses in the text is uneven. An extra one was added at the end of chapter 6.
+parentheses_file <-
+as.data.frame(read_file("faulkner_absalom_parentheses.txt"))
+colnames(parentheses_file) <- "text"
+parentheses_clean <- parentheses_file %>%
+mutate (text = gsub("[\t\n\r]", "", text, perl = TRUE))
+#This string is used for the Python script
+absalom_string <- parentheses_clean$text
+reticulate::repl_python()
+#This code snippet converts all of the nested parentheses into a list object. Full credit goes to: https://stackoverflow.com/users/68063/gareth-rees
+def parenthetic_contents(string):
+"""Generate parenthesized contents in string as pairs (level, contents)."""
+stack = []
+for i, c in enumerate(string):
+if c == '(':
+stack.append(i)
+elif c == ')' and stack:
+start = stack.pop()
+yield (len(stack)+1, string[start + 1: i],start, start + len(string[start + 1: i]))
+py_nested_sentences = list(parenthetic_contents(r.absalom_string))
+quit
+#Create Parenthetical_df for processing this.
+#Convert the Python list object into a 2 vector data frame. This gave me no end of trouble because the vector kept turning into a list. Could not find a tidy function for this.
+nested_sentence <- py$py_nested_sentences
+parenthetical_df <-
+as.data.frame(matrix(
+unlist(nested_sentence),
+nrow = length(nested_sentence),
+byrow = TRUE
+))
+colnames(parenthetical_df) <- c("depth", "sentence", "start", "end")
+#Clean up table
+parenthetical_level <- parenthetical_df %>%
+select(-sentence) %>%
+mutate(across(.cols = everything(),  ~ as.numeric(.)))
+#get the values from parenthetical level_one.
+parenthetical_level_one <- parenthetical_level %>%
+filter(depth == 1)
+#Get all start end blocks "outside" level one (start-1, end+1)
+#Pivot into one column so start and end alternate
+# 1 and total absalom lenght
+#arrange by start
+parenthetical_main_text <- parenthetical_level_one %>%
+mutate (depth = 0) %>%
+mutate (start = start - 1) %>%
+mutate (end = end + 1) %>%
+pivot_longer(2:3, values_to = "start") %>%
+select (-name) %>%
+add_row(depth = 0, start = 1) %>%
+add_row(depth = 0, start = str_length(absalom_string)) %>%
+arrange(start)
+#pivot start end long, and drop start_stop values
+parenthetical_long <- parenthetical_level %>%
+pivot_longer(2:3, names_to = "stops", values_to = "start") %>%
+select(-stops)
+#add main text parenthetical to long parenthesis table
+parenthetical_all <- parenthetical_long %>%
+bind_rows(parenthetical_main_text)
+#Number of empty rows to insert
+N = 1
+#Every N rows after which empty rows should be inserted
+after_rows = 2
+parenthetical_all_staggered <- do.call(
+rbind,
+lapply(
+split(parenthetical_all,
+ceiling(1:NROW(parenthetical_all)/after_rows)),
+function(a) rbind(a, replace(a[1:N,], TRUE, NA))
+)
+)
+parenthetical_all_staggered <- parenthetical_all_staggered %>%
+remove_rownames() %>%
+mutate(depth = ifelse(is.na(depth), lag(depth), depth))
+#Create a chapter index of when each character occurs. This is useful for keeping track of the data when plotting it.
+##Unnest everything by chapter and add row numbers for chapters. Then create a helper column to get the string lenght of each segment. Then get the cummulative sum with a lag of 1.
+chapter_index <- parentheses_clean %>%
+unnest_regex(chapter_text, text , "Chapter \\d") %>%
+mutate(chapter = row_number()) %>%
+mutate(length = str_length(chapter_text)) %>%
+mutate(chapter_marker = cumsum(lag(length,default=1)))
+#find the opening phrases of the longest break for annotation.
+parenthetical_longest_break <- parenthetical_df %>%
+mutate(across(c(1, 3:4),  ~ as.numeric(.))) %>%
+mutate (gap = end - start) %>%
+arrange(depth, desc(gap)) %>%
+group_by(depth) %>%
+top_n(gap, n= 1) %>%
+mutate (sentence = paste("(", sentence, ")", sep = "")) %>%
+mutate (sentence = ifelse(
+str_count(sentence, "\\s") > 1,
+paste(word(sentence, 1, 7), "...", sep = ""),
+sentence
+))
+parenthetical_sentences <- parenthetical_df %>%
+select(-start,-end) %>%
+filter(depth == 1) %>%
+mutate(word_count = str_count(sentence, "\\S+")) %>%
+group_by(depth) %>%
+summarize(total = sum(word_count)) %>%
+mutate(percent = total / absalom_length)
+plot_parentheses <- plot_ly(
+parenthetical_all_staggered,
+x = ~ start,
+y =  ~ depth,
+name  = ~ depth,
+type = 'scatter',
+mode = 'lines+markers',
+marker = list(size = 4),
+line = list(width = 1, dash = "dot"),
+width = 768,
+height = 250
+)
+plot_parentheses <- plot_parentheses %>%
+layout(
+title = list(text = "Parentheses Nesting Levels in <i>Absalom, Absalom!</i>"),
+xaxis = list(
+gridwidth = 1,
+zeroline = FALSE,
+showline = FALSE,
+tickmode = 'array',
+tickvals = chapter_index$chapter_marker,
+ticktext = chapter_index$chapter,
+title = list(text = "Chapter")
+),
+yaxis = list(
+title = list(text = "Nesting Level"),
+showgrid = FALSE,
+zeroline = FALSE,
+showline = FALSE,
+linewidth = 0,
+tickmode = 'array',
+tickvals = c(0, 1, 2, 3, 4),
+ticktext = c("Main Text", "1: ()", "2: (())", "3: ((()))", "4: (((())))")
+),
+colorway = faulkner_colorway_bw,
+font = plot_font,
+autosize = FALSE
+)
+plot_parentheses <- plot_parentheses %>%
+add_annotations(
+x = parenthetical_longest_break$start,
+y = parenthetical_longest_break$depth,
+text = parenthetical_longest_break$sentence,
+xref = "x",
+yref = "y",
+yshift = 15,
+xanchor = "left",
+showarrow = FALSE,
+font = plot_font
+)
+plot_parentheses <-  plot_parentheses %>%
+config(
+toImageButtonOptions = list(
+format = "png",
+width = 768,
+height = 250
+)
+)
+plot_parentheses
+unique_words <- absalom_df %>%
+unnest_tokens(word, text) %>%
+distinct(word) %>%
+filter (word == str_match(word, "[a-z]+"))
+word_list <- as.data.frame(read_file("words_alpha.txt"))
+colnames(word_list) <- "word"
+word_list <- word_list %>%
+unnest_tokens(word, word)
+neologisms_export <- unique_words %>%
+anti_join(word_list)
+write_csv(neologisms_export, "neologisms_export.csv")
+neologisms_import <- read_csv("neologisms_import.csv")
+neologisms_count <- nrow(neologisms_import)
+unique_words_count <- unique_words %>%
+nrow()
+#write_csv(ngrams_text_count, "ngrams_text_count.csv")
+ngrams_text_count <- read_csv("ngrams_text_count.csv")
+#Calculate text lengths.
+absalom_length <- absalom_df %>%
+unnest_tokens(word, text) %>%
+nrow()
+ngrams_word_count <- ngrams_text_count %>%
+mutate(total_count = ngram_length * text_count) %>%
+group_by(ngram_length) %>%
+summarise(total = sum(total_count)) %>%
+arrange(desc(ngram_length)) %>%
+mutate(cum_total = cumsum(total)) %>%
+mutate(percent = total / absalom_length) %>%
+mutate(cum_percent = cum_total / absalom_length)
+ngrams_word_count <- ngrams_word_count %>%
+mutate(title = "absalom")
+character_names <- absalom_events_short %>%
+unnest_tokens(word, CharacterName) %>%
+distinct(word)
+major_character_words <- absalom_events_short %>%
+filter(PresentMentioned == "Present") %>%
+filter(CharacterName %in% c("Charles Bon",
+"Judith Sutpen",
+"Thomas Sutpen",
+"Henry Sutpen")) %>%
+group_by(CharacterName) %>%
+unnest_tokens(word, event_sentence) %>%
+anti_join(stop_words) %>%
+anti_join(character_names) %>%
+count(word) %>%
+top_n(5) %>%
+arrange(CharacterName, desc(n))
+major_character_ngrams <- absalom_events_short %>%
+filter(PresentMentioned == "Present") %>%
+filter(CharacterName %in% c("Charles Bon",
+"Judith Sutpen",
+"Thomas Sutpen",
+"Henry Sutpen")) %>%
+group_by(CharacterName) %>%
+unnest_ngrams(word, event_sentence, n=4) %>%
+count(word) %>%
+top_n(5) %>%
+arrange(CharacterName, desc(n))
+major_character_ngrams_ind <- major_character_ngrams %>%
+ungroup() %>%
+add_count(word, name = "repeated_ngram") %>%
+filter(repeated_ngram<2)
+major_character_ngrams_shared <- major_character_ngrams %>%
+ungroup() %>%
+add_count(word, name = "repeated_ngram") %>%
+filter(repeated_ngram>1)
+major_narrators_ngrams <- absalom_events_short %>%
+filter(PresentMentioned == "Present") %>%
+filter(CharacterName %in% c("Quentin Compson",
+"Mr. Compson",
+"McCannon, Shreve",
+"Rosa Coldfield")) %>%
+group_by(CharacterName) %>%
+unnest_ngrams(word, event_sentence, n=4) %>%
+count(word) %>%
+top_n(5) %>%
+arrange(CharacterName, desc(n))
