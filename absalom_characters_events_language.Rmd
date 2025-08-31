@@ -105,7 +105,7 @@ event_length <- absalom_event_sentences %>%
 Import all of the *Absalom, Absalom!* events from a flattened version of the *DY* database.
 
 ```{r read_all_absalom_events}
-absalom_all_events <- read_csv("data/absalom_all_events_2021_5_11.csv")
+absalom_all_events <- read_csv("protected_data/absalom_all_events_2021_5_11.csv")
 ```
 
 ```{r preview_absalom_all_events, echo=FALSE}
