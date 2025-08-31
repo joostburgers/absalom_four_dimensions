@@ -1,0 +1,1341 @@
+---
+title: White Paper:'*Absalom, Absalom!* and the Digital Humanities'
+subtitle: Charting Characters, Events, and Language
+author: "Johannes Burgers"
+date: "`r format(Sys.time(), 'Last updated: %B %e, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    theme: yeti
+    df_print: paged
+    code_folding: show
+always_allow_html: true
+---
+
+```{r setup, include=FALSE, message = FALSE, warning=FALSE, error=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE, error=FALSE, tidy='styler')
+knitr::knit_engines$set(python = reticulate::eng_python)
+source(here::here("helper_functions/","table_styling.r"))
+
+```
+
+# Overview
+
+The following white paper documents the calculations performed for the essay "*Absalom, Absalom!* and the Digital Humanities: Charting Characters, Events, and Language" in the [Norton Critical Edition of *Absalom, Absalom!*](https://wwnorton.com/books/9780393422580). Some of these results have been reworked into a visual essay, which allows for more interactivity and is available here:
+
+- [Absalom, Absalom! and the Digital Humanities: Charting Characters, Events, and Language](https://faulkner.iath.virginia.edu/absalom_characters_events_language/)
+
+As the processing required using materials that are in copyright, some of the data has not been posted on-line. Instead it is stored locally in a folder called `protected_data`. Consequently, the code in the `.rmd` will not run without this data. This interactive white paper provides a substitute that shows the results of all the calculations while protecting the data that is still under copyright.
+
+
+```{r load_packages}
+#Data wrangling
+library(tidyverse)
+library(tidytext)
+library(stringr)
+library(lubridate)
+
+#Python interoperability
+library(reticulate)
+
+#Visualization
+library(plotly)
+
+#Output
+library(shiny)
+library(scales)
+library(webshot)
+library(kableExtra)
+```
+
+# Pre-Processing
+
+## Load Texts
+
+The loaded is a slightly modified version of *Absalom, Absalom!*. As some of the data entries in DY were slightly different than the text due to variations in punctuation and spacing or the occasional typo, some sentences in the text had to be manually reconciled with the database.
+
+
+```{r load_text}
+#Read in the text
+absalom_txt <- as.data.frame(read_file("protected_data/absalom_cleaned_to_match_4_30_rev4.txt"))
+colnames(absalom_txt) <- "text" 
+
+absalom_df <- absalom_txt %>% 
+mutate(text = gsub("[‘’]", "'", text)) %>% 
+              unnest_tokens(text, text) %>% 
+              summarize(text = str_c(text, collapse = " "))
+```
+
+## Event Sentences
+
+This file was created by recomposing the text based on the "First Words" column and matching the text segments with each event using a copy of the text. As this process is quite involved it has been branched out into a separate file [text-processing explanation](https://joostburgers.github.io/absalom_sentiment_analysis/absalom_text_processing_supplement.html). Full details on the process can be viewed there.
+
+
+```{r load_event_sentences}
+absalom_event_sentences <- read_csv("protected_data/absalom_event_sentences_clean_2021_5_10.csv")
+```
+
+
+## Additional Global Variables
+
+The following variables are necessary for the subsequent script. As there were some edge cases in the data, all of the data files pulled from the *Digital Yoknapatawpha* site were manually curated and cleaned.
+
+### absalom_length
+
+Establish the total length of the text.
+
+```{r global_variables}
+absalom_length <- str_count(absalom_df$text, "\\S+")
+cat("absalom_length = ", paste(absalom_length, collapse = ", "), "\n")
+```
+
+### event_length
+
+Establish the length of each event.
+
+```{r absalom_event_word_count}
+event_length <- absalom_event_sentences %>%
+  mutate(event_words = str_count(event_sentence,  "\\S+")) %>%
+  select(EventID, begin_word, end_word, event_sentence, event_words)
+```
+
+### absalom_all_events
+
+Import all of the *Absalom, Absalom!* events from a flattened version of the *DY* database.
+
+```{r read_all_absalom_events}
+absalom_all_events <- read_csv("data/absalom_all_events_2021_5_11.csv")
+```
+
+```{r preview_absalom_all_events, echo=FALSE}
+absalom_all_events %>%
+  kable_trunc(
+    caption = "All Absalom Events",
+     )
+```
+
+### Absalom event data
+
+Helper file with all of the dates defined as strings and not as date objects. On occasion, there is unintended date conversion when exporting from *DY* database.
+
+```{r event_dates}
+aa_event_dates <- read_csv("data/absalom_event_dates_05_15.csv")
+
+aa_event_dates <- aa_event_dates %>% 
+                  mutate(StartDate=str_trim(StartDate)) %>% 
+                  mutate(EndDate= str_trim(EndDate)) %>% 
+                  select(EventID, StartDate, EndDate) %>% 
+                  drop_na()
+```
+
+
+```{r preview_aa_event_dates, echo=FALSE}
+aa_event_dates %>%
+  kable_trunc(
+    caption = "Event Dates",
+     )
+```
+
+### Chapter numbers
+
+Data file with the chapter number for each page.
+
+```{r chapter_numbers}
+chapter_numbers <- read_csv("data/chapter_numbers.csv")
+```
+
+
+```{r preview_chapter_numbers, echo=FALSE}
+chapter_numbers %>%
+  kable_trunc(
+    caption = "Chapter Numbers",
+     )
+```
+
+### Absalom Event Sentences
+
+This dataframe contains each event in *Absalom, Absalom!*, where that event takes place, the characters present, their demographic information, and the sentence that encapsulates that event.
+
+```{r clean_up_absalom_events}
+# The full table is long and hard to work with.
+absalom_events_short <- absalom_all_events %>%
+  select(3:8, 11, 13, 21:28, 34, 50, 52:54) %>%
+  mutate(narrator = str_extract(Summary, "(?<=(SOURCE)).+[^]</p>]")) %>%
+  mutate(narrator = str_replace_all(narrator, ":", "")) %>%
+  left_join(event_length, by = "EventID") %>%
+  left_join(chapter_numbers, by = "PageNumber") %>%
+  left_join(aa_event_dates, by = "EventID") %>%
+  relocate(StartDate, .after = NarrativeStatus) %>%
+  relocate(EndDate, .after = StartDate)
+```
+
+```{r preview_absalom_events_short, echo=FALSE}
+absalom_events_short %>%
+  kable_trunc(
+    caption = "Absalom Events and Sentences",
+    )
+```
+
+### DY Events
+
+Get all of the events from the *DY* database for comparative analysis.
+
+
+```{r read_all_DY_events}
+dy_events <- read_csv("protected_data/full_database_2021_5_11.csv")
+```
+
+```{r clean_up_all_events}
+dy_events_short <- dy_events %>%
+  select(1:11, 21:27, 50, 52:54)
+```
+
+
+```{r preview_dy_events_short, echo=FALSE}
+dy_events_short %>%
+  kable_trunc(
+    caption = "Event Dates",
+     )
+```
+
+## Global chart styling
+
+Variables created to simplify chart creation.
+
+
+```{r load_chart_styling}
+#Page styling
+
+#This is where you create your own custom color palette for the traces.
+faulkner_colorway = c("#132C53","#F27A18","#ae0700","#79b473","#38726c","#76bed0","#6b2d5c","#448b2d","#e6d812")
+
+faulkner_colorway_bw = c("#999999", "#777777",	"#555555", "#333333",	
+"#111111")
+
+#This controls the background color for the entire chart. Probably best left white.
+faulkner_paperbackground = c('rgba(255,255,255,0)')
+
+#This controls the background for the plot. Probably best left white.
+faulkner_plotcolor = c('rgba(255,255,255,.3)')
+
+#Margin 
+
+m <- list(l = 50, r = 50, b = 50, t = 50, pad = 4)
+
+#Caption Style
+
+fig_caption <- "font-family: 'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif; font-weight: normal; font-size:90%"
+
+plot_font <- list(
+  family = "'Playfair Display','Helvetica Neue',Helvetica,Arial,sans-serif",
+  size = 12,
+  color = '#363636')
+```
+
+# Part 1: Characters
+
+## Character Statistics
+
+Statistics related to the Characters section of the essay. 
+
+### Total number of characters
+```{r all_characters}
+all_characters <- dy_events_short %>%
+distinct(CharacterName) %>%
+nrow()
+cat("all_characters = ", paste(all_characters, collapse = ", "), "\n")
+```
+
+### Detailed Racial Breakdown DY
+
+The racial composition of all of the characters in *Digital Yoknapatawpha*. This number is not weighted by how often these characters are actually present in events, which is an important distinction.
+
+```{r black_white_all}
+black_white_all <- dy_events_short %>%
+distinct(CharacterName, .keep_all = TRUE) %>%
+count(Race) %>%
+mutate(percent = n / sum(n))
+
+```
+
+```{r preview_black_white_all, echo=FALSE}
+black_white_all %>% 
+  mutate(percent = label_percent(accuracy = 0.1)(percent)) %>% 
+  kable_trunc(
+    caption = "Racial Composition Digital Yoknapatawpha",
+    n=0
+     )
+```
+
+## Character composition based on Characters Present
+
+Character composition of *Absalom, Absalom!* based on how often characters are actually present. This excludes characters who are only mentioned.
+
+```{r count_char}
+char_count_AA <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>% 
+  distinct(CharacterName, Race) %>%
+  count(Race)  %>%
+  mutate(percent = round(n / sum(n),2)) %>% 
+ mutate(Race = ifelse(Race=="MixedBlackWhite", "Mixed Black White", Race))
+```
+
+```{r preview_count_char, echo=FALSE}
+char_count_AA %>% 
+  mutate(percent = label_percent(accuracy = 1)(percent)) %>% 
+  kable_trunc(
+    caption = "Weighted Racial Composition Absalom, Absalom!",
+    n=0
+     )
+```
+
+## Weighting Character Presence
+
+This static picture of the characters is deceptive. The raw demographic counts do not consider how frequently certain characters appear in the text. This is calculated by counting the number of times a specific character or types of characters appear in events across the text. This measure is comparable to how much "stage time" a character might get in a play. The distinction is significant. For instance, Othello is the only Moor character in *Othello*, but he is very much present on stage. The chart below (Figure 1) shows both the raw demographic data and the frequency of character presence by race.
+
+```{r weight_count}
+weight_count <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>%
+  group_by(Race) %>%
+  summarize(word_total = sum(event_words)) %>%
+  mutate(percent = round(word_total / sum(word_total),2)) %>% 
+  mutate(Race = ifelse(Race=="MixedBlackWhite", "Mixed Black White", Race)) %>% 
+  filter(percent >0)
+```
+
+```{r preview_weight_count, echo=FALSE}
+weight_count %>% 
+  mutate(percent = label_percent(accuracy = 0.1)(percent)) %>% 
+  kable_trunc(
+    caption = "Racial Composition by Character Presence",
+    n=0
+     )
+```
+
+
+```{r plot_demography, fig.cap="Figure 1: Demography by raw count and by character presence. The image on the left shows what percentage of each type of character is present in the text. The image on the right shows how often they appear. Note that \"Indian\" and \"Multiracial Groups\" dissappear, because they are present in less than 1% of the text."}
+
+
+plot_demography <- plot_ly()
+
+plot_demography <- plot_demography %>% 
+      add_pie(
+      values =  ~char_count_AA$n,
+    labels = ~ char_count_AA$Race,
+    type = 'pie',
+    name = "Character Count",
+    text = paste(char_count_AA$Race, char_count_AA$percent*100, "%"),
+    textinfo = 'text',
+    domain = list(x=c(.1,.45), y = c(.1,.9))
+   
+  )
+
+plot_demography <- plot_demography %>% 
+  add_pie(
+        values = ~ weight_count$word_total,
+    labels = ~ weight_count$Race,
+    type = 'pie',
+    name = "Character Appearance",
+    text = paste(weight_count$Race, weight_count$percent*100, "%"),
+    textinfo = 'text',
+    domain = list(x = c(.55,.9), y = c(.1,.9))
+ 
+  )
+
+plot_demography <- plot_demography %>% layout(
+    title = list(text = "Character Demography"),
+    font = plot_font,
+    showlegend = FALSE,
+    colorway = faulkner_colorway,
+    margin = m,
+    autosize = F,
+    width = 1024
+    
+  )
+
+plot_demography <- plot_demography %>% add_annotations(
+  x = c(.2,.8),
+  y = c(1, 1),
+  xref = 'paper',
+  yref = 'paper',
+  showarrow = FALSE,
+  text = c("Raw Count", "Present in Events"),
+  font = list(size = 14),
+  align = 'left'
+  
+)
+
+plot_demography <-  plot_demography %>%
+  config(
+    toImageButtonOptions = list(
+      format = "png",
+      width = 1000,
+      heigth = 4000
+    )
+  )
+
+  
+plot_demography
+```
+
+The charts highlight the prominent role of mixed ancestry characters. Even though they are a demographic minority, the relative share of mixed ancestry characters increases to `r percent(weight_count$percent[2])` when their textual presence is taken into account. The statistics affirm the obvious: characters with mixed ancestry feature prominently. 
+
+## Individual Character Presence
+
+Mixed ancestry character presence can also be broken down to the individual character.
+
+```{r mixed_ancestry_present}
+total_present_length <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>%
+  distinct(EventID, .keep_all = TRUE) %>%
+  summarise(total_words = sum(event_words))
+
+character_appearances <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>%
+    group_by(CharacterName, Race) %>%
+  summarize(word_total = sum(event_words)) %>%
+  mutate(percent = word_total / total_present_length$total_words[1]) %>% 
+  filter(
+    CharacterName %in% c(
+      "Clytemnestra",
+      "Charles Bon",
+      "Charles Etienne Saint-Valery Bon",
+      "Jim Bond",
+      "Mrs. Charles Bon|Octoroon Mistress",
+      "Mrs. Thomas Sutpen(1)"
+    )
+  ) %>%
+  arrange(CharacterName)
+```
+
+```{r preview_character_appearances, echo=FALSE}
+character_appearances %>% 
+  mutate(percent = label_percent(accuracy = 0.1)(percent)) %>% 
+  kable_trunc(
+    caption = "Mixed Ancestry Character Presence",
+    n=0
+     )
+```
+
+## Sutpen and class
+
+Understanding how Sutpen's "Whiteness" is connected to his class is an important feature of the novel. The following statistical breakdown shows how frequently Sutpen is surrounded by people who are not members of his class.
+
+```{r sutpen_social}
+
+Sutpen_events <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>%
+  filter(CharacterName == "Thomas Sutpen")
+
+Sutpen_unique_all <- absalom_events_short %>%
+  semi_join(Sutpen_events, by = "EventID") %>%
+  filter(PresentMentioned == "Present") %>%
+  filter(!CharacterName %in% c("Thomas Sutpen","Judith Sutpen", "Henry Sutpen", "Charles Bon", "Clytemnestra")) %>% 
+  group_by(Class) %>% 
+  summarise(total_words = sum(event_words)) %>% 
+  mutate(percent = total_words/sum(total_words)) %>% 
+  arrange(Class)
+```
+
+```{r preview_Sutpen_unique_all, echo=FALSE}
+Sutpen_unique_all %>% 
+  mutate(percent = label_percent(accuracy = 0.1)(percent)) %>% 
+  kable_trunc(
+    caption = "Sutpen character association",
+    n=0
+     )
+```
+
+# Part 2: Events
+
+The following manipulations show the data wrangling necessary for getting the data ready to make the `plotly` chart. 
+
+```{r calculate_narrative_structure}
+# This primes the data for plotly. 
+
+# De-duplicate events
+absalom_chronology <- absalom_events_short %>%
+  distinct(EventID, .keep_all = TRUE) %>%
+  select(1:8, 10, 28:29) %>%
+  mutate(Summary = str_remove(Summary, '<p>')) %>%
+  mutate(Summary = str_remove(Summary, '</p>')) %>%
+  mutate(Summary = gsub("((\\S+\\s){7})", "\\1<br> ", Summary)) %>%
+  arrange(`Chronological Order`) %>%
+  mutate(Chrono = row_number())  %>%
+  mutate(StartDate = as_date(StartDate)) %>%
+  arrange(OrderWithinPage) %>%
+  mutate(OrderPageEnd = lead(
+    OrderWithinPage,
+    n = 1,
+    default = last(OrderWithinPage)
+  )) %>%
+  mutate(EventLength = OrderPageEnd - OrderWithinPage) %>%
+  relocate(OrderPageEnd:EventLength, .after = OrderWithinPage) %>%
+  mutate(NarrativeStatus = str_replace_all(NarrativeStatus, "\\+", "")) 
+
+
+#Pivot table wider so each narrative status has its own column. These will be the y values for the traces below.
+absalom_chronology_bw <-  absalom_chronology %>%
+  pivot_wider(names_from = "NarrativeStatus",
+              values_from = Chrono)
+```
+
+```{r preview_absalom_chronology_bw, echo=FALSE}
+absalom_chronology_bw %>% 
+  kable_trunc(
+    caption = "Preview of chronology table",
+    n=5
+     )
+```
+
+## Measuring linearity
+
+One measure of a narrative's coherence is its linearity. In particular, how much the narrative jumps forward and back. There are two ways to measure this. The number of actual "jumps" the text makes and the difference between the "narrative present" and the "past". 
+
+### Flashback and Flashforward.
+
+In this calculation any "jump" between past and future is counted. Thus, if there is a flashforward within a flashback this is measured.
+
+```{r calculate_linearity}
+absalom_jump <- absalom_chronology %>%
+  mutate(Chrono2 = lag(Chrono, default = Chrono[1])) %>%
+  mutate(difference = Chrono - Chrono2) %>%
+  mutate(
+    jump = case_when(
+      difference < 0 ~ "flashback",
+      difference > 1 ~ "flashforward",
+      difference <= 1 ~ "linear"
+    )
+  ) %>%
+  count(jump) %>%
+  mutate(percent = n / sum(n))
+```
+
+
+```{r preview_absalom_jump, echo=FALSE}
+absalom_jump %>% 
+  mutate(percent = label_percent(accuracy = 1)(percent)) %>% 
+  kable_trunc(
+    caption = "Racial Composition Digital Yoknapatawpha",
+    n=0
+     )
+```
+
+### Narrative Present
+
+Another way to think about time is to consider how much of the narrative deviates from the "Narrative Present". That is, the time in which the narrative takes place. This is a more quotidian version of Flashback. After all, if a narrative goes back in time and then back in time again, this would be calculated as two flashbacks. In the calculation here, this is all part of the same flashback.
+
+
+```{r calculate_narrative_present}
+narrative_present <- absalom_chronology %>%
+  mutate(StartDate = as_date(StartDate)) %>%
+  mutate(temporality = ifelse(StartDate >= StartDate[1], "Narrative Present", "Past")) %>%
+  group_by(temporality) %>%
+  summarise(total_words = sum(event_words)) %>%
+  mutate(percent = total_words / sum(total_words))
+```
+
+```{r narrative_present_preview, echo=FALSE}
+
+narrative_present %>% 
+  mutate(percent = label_percent(accuracy = 1)(percent)) %>% 
+  kable_trunc(
+    caption = "Narrative Present vs. Past in AA!",
+    n=0
+     )
+
+```
+
+
+## Narrative Status
+
+The breakdown of the different ways in which information is conveyed to the reader. DY defines this as "Narrative Status". Notably, the majority of the events are "told".
+
+```{r calculate_narrative_status}
+absalom_status <- absalom_chronology %>%
+  group_by(NarrativeStatus) %>%
+  summarise(total_words = sum(event_words)) %>%
+  mutate(percent = total_words / sum(total_words))
+```
+
+```{r absalom_status_preview, echo=FALSE}
+absalom_status %>% 
+  mutate(percent = label_percent(accuracy = 1)(percent)) %>% 
+  kable_trunc(
+    caption = "Narrative Status",
+    n=0
+     )
+```
+
+## Event chronology
+
+The following chart provides a detailed narrative structure diagram of all the events in *Absalom, Absalom!*. While technically correct, it is also a bit overwhelming. For more stripped down versions please check the following:
+
+- [*Absalom, Absalom!* and the Digital Humanities: Charting Characters, Events, and Language](https://faulkner.iath.virginia.edu/absalom_characters_events_language/)
+- [*Absalom, Absalom!*: Chapter-by-Chapter Chronology](https://faulkner.iath.virginia.edu/family/aa_events.php)
+
+
+```{r import_annotations}
+# Creates a clean csv for export. Not necessary
+
+# chronology_annotations_export <- absalom_chronology %>%
+#   select(4, 8:9, 11, 14)
+
+# write_csv(chronology_annotations_export, "annotations_export.csv")
+
+chrono_ann_import <- read_csv("data/annotations_import.csv")
+chrono_ann_import_secondary <-
+  read_csv("data/annotations_import_secondary.csv")
+
+chrono_ann_import <- chrono_ann_import %>%
+  drop_na(event)
+```
+
+```{r create_chapter_markers}
+chapters_single <- absalom_chronology %>%
+  distinct(chapter, .keep_all = TRUE) %>%
+  select(OrderWithinPage, chapter)
+```
+
+```{r plot_aa_bw, fig.cap= "Figure 3: Plot Structure of <i>Absalom, Absalom!</i>. Particularly notable, is the repetition of an S pattern throughout. This indicates a similar structure across the chapters."}
+plot_aa_bw <- plot_ly(
+  absalom_chronology_bw,
+  x = ~ OrderWithinPage,
+  y = ~ Narrated,
+  name = 'Narrated',
+  type = 'scatter',
+  mode = 'markers',
+  marker = list(
+    symbol = 'square',
+    line = list(
+      width = 1,
+      color = "#000000",
+      opacity = 1
+    ),
+    color = "#FFFFFF",
+    opacity = .6
+  ),
+  hovertemplate = paste(
+    'Page: %{x}',
+    '<br>',
+    'Narrative Status: Narrated',
+    '<br>',
+    'Chronological Order: %{y}',
+    '<br>',
+    'Start Date:',
+    absalom_chronology_bw$StartDate,
+    '<br>',
+    'Summary:',
+    '<br>',
+    absalom_chronology_bw$Summary,
+    '<extra></extra>'
+  )
+)
+
+plot_aa_bw <- plot_aa_bw %>% add_trace(
+  x = ~ OrderWithinPage,
+  y = ~ Told,
+  name = 'Told',
+  type = 'scatter',
+  mode = 'markers',
+  marker = list(
+    symbol = "circle",
+    line = list(
+      width = 1,
+      color = "#000000",
+      opactiy = 1
+    ),
+    color = "#D4D4D4",
+    opacity = .6
+  ),
+  hovertemplate = paste(
+    'Page: %{x}',
+    '<br>',
+    'Narrative Status: Told',
+    '<br>',
+    'Chronological Order: %{y}',
+    '<br>',
+    'Start Date:',
+    absalom_chronology_bw$StartDate,
+    '<br>',
+    'Summary:',
+    '<br>',
+    absalom_chronology_bw$Summary,
+    '<extra></extra>'
+  )
+)
+
+plot_aa_bw <- plot_aa_bw %>% add_trace(
+  x = ~ OrderWithinPage,
+  y = ~ Remembered,
+  legendgroup = "Other",
+  name = paste('Remembered<br>Hypothesized<br>Narrated+Consciousness'),
+  type = 'scatter',
+  mode = 'markers',
+  marker = list(
+    symbol = "diamond",
+    line = list(
+      width = 1,
+      color = "#000000",
+      opacity = 1
+    ),
+    color = "#494848",
+    opacity = .6
+  ),
+  hovertemplate = paste(
+    'Page: %{x}',
+    '<br>',
+    'Narrative Status: Remembered',
+    '<br>',
+    'Chronological Order: %{y}',
+    '<br>',
+    'Start Date:',
+    absalom_chronology_bw$StartDate,
+    '<br>',
+    'Summary:',
+    '<br>',
+    absalom_chronology_bw$Summary,
+    '<extra></extra>'
+  )
+  
+)
+plot_aa_bw <- plot_aa_bw %>% add_trace(
+  x = ~ OrderWithinPage,
+  y = ~ Hypothesized,
+  legendgroup = "Other",
+  name = 'Other',
+  showlegend = FALSE,
+  type = 'scatter',
+  mode = 'markers',
+  marker = list(
+    symbol = "diamond",
+    line = list(width = 1,
+                color = "#000000"),
+    color = "#494848"
+  ),
+  hovertemplate = paste(
+    'Page: %{x}',
+    '<br>',
+    'Narrative Status: Hypothesized',
+    '<br>',
+    'Chronological Order: %{y}',
+    '<br>',
+    'Start Date:',
+    absalom_chronology$StartDate,
+    '<br>',
+    'Summary:',
+    '<br>',
+    absalom_chronology_bw$Summary,
+    '<extra></extra>'
+  )
+)
+plot_aa_bw <- plot_aa_bw %>% add_trace(
+  x = ~ OrderWithinPage,
+  y = ~ NarratedConsciousness,
+  legendgroup = "Other",
+  name = 'Other',
+  type = 'scatter',
+  showlegend = FALSE,
+  mode = 'markers',
+  marker = list(
+    symbol = "diamond",
+    line = list(width = 1, color = "#000000"),
+    color = "#494848"
+  ),
+  hovertemplate = paste(
+    'Page: %{x}',
+    '<br>',
+    'Narrative Status: Narrated+Consciousness',
+    '<br>',
+    'Chronological Order: %{y}',
+    '<br>',
+    'Start Date:',
+    absalom_chronology_bw$StartDate,
+    '<br>',
+    'Summary:',
+    '<br>',
+    absalom_chronology_bw$Summary,
+    '<extra></extra>'
+  )
+)
+
+plot_aa_bw <-  plot_aa_bw %>%
+  layout(
+    title = list(text = "Plot Structure Chart: <i>Absalom, Absalom!</i>"),
+    xaxis = list(
+      tickmode = 'array',
+      tickvals = chapters_single$OrderWithinPage,
+      ticktext = chapters_single$chapter,
+      gridwidth = 1.5,
+      title = list(text = "Chapter")
+    ),
+    font = plot_font,
+    margin = m,
+    yaxis = list(title = list(text = "Chronology"),
+                 showgrid = FALSE),
+    autosize = FALSE,
+    width = 1024,
+    height = 400
+  )
+
+plot_aa_bw <- plot_aa_bw %>%
+  add_annotations(
+    x = chrono_ann_import$OrderWithinPage,
+    y = chrono_ann_import$Chrono,
+    text = chrono_ann_import$event,
+    xref = "x",
+    yref = "y",
+    showarrow = TRUE,
+    arrowhead = 3,
+    arrowwidth = 1,
+    arrowsize = .5,
+    ax = chrono_ann_import$xoffset,
+    ay = chrono_ann_import$yoffset,
+    font = list(color = chrono_ann_import$fontcolor),
+    bgcolor = chrono_ann_import$bgcolor,
+    borderpad = 0,
+    borderwidth = 0
+  )
+
+plot_aa_bw <- plot_aa_bw %>%
+  add_annotations(
+    x = chrono_ann_import_secondary$OrderWithinPage,
+    y = chrono_ann_import_secondary$Chrono,
+    text = chrono_ann_import_secondary$event,
+    xref = "x",
+    yref = "y",
+    showarrow = TRUE,
+    arrowhead = 3,
+    arrowwidth = 1,
+    arrowsize = .5,
+    ax = chrono_ann_import_secondary$xoffset,
+    ay = chrono_ann_import_secondary$yoffset,
+    font = list(color = "rgba(255,255,255,0)"),
+    bgcolor = "rgba(255,255,255,0)",
+    borderpad = 0,
+    borderwidth = 0
+  )
+
+plot_aa_bw <-  plot_aa_bw %>% 
+  config(
+    toImageButtonOptions = list(
+      format = "svg",
+      width = 1024,
+      height = 400
+    )
+  )
+
+plot_aa_bw
+
+```
+
+
+
+# Part 3: Language
+
+The linguistic analysis required extra cleaning of the *Absalom, Absalom!* `.txt` file. As this file used variations on quotation marks, this needed to be regularized throughout. Each sentence also needed to be lifted out based on terminal punctuation. This allowed for a more precise calculation of the manuscript metrics below.
+
+```{r sentence_length_language}
+absalom_clean <- absalom_txt %>% 
+mutate(text = gsub("[,\\!\\?\\.](?=[^’‘]*’[\\s—-])"," ",text, perl=TRUE))
+
+
+#Regex explained:
+#[,\\!\\?\\.] find any of !,?.
+#(?=[^’‘] not followed by curly quote. The closing curly quote is counterintuitive here, but it helps exclude 's as in Sutpen's. Instead, we want all curly quotes followed with a white space \s: 
+#*’[\\s—-]) the en and em dash are there because sometimes these can abutt the closing curly quote.
+```
+
+## Descriptive statistics
+
+Calculate the average sentence length and the number of sentences over 100 words. I realize 100 words is a rather arbitrary measure, but it gives the reader a good sense of how many really long sentences there are in the text.
+
+```{r sentence_length_individual}
+#Get the string length of all sentences individually.
+
+absalom_sentences <- absalom_clean %>%
+  unnest_regex(word, text, "[.?!]") %>%
+  mutate (string_length = str_count(word, "\\S+"))
+```
+
+### Mean Sentence length
+
+This number is an estimate. The real issue is that it is not possible to verify if each individual sentence is counted correctly if there is an error in punctuation in the manuscript. 
+
+```{r sentence_length_mean}
+absalom_sentences_mean <-  absalom_sentences %>%
+  summarize(mean_length = mean(absalom_sentences$string_length))
+```
+
+```{r sentence_length_preview, echo=FALSE}
+
+absalom_sentences_mean %>% 
+  mutate(mean_length = round(mean_length,2)) %>% 
+  kable_trunc(
+    caption = "Mean Sentence Length",
+    n=0
+     )
+
+```
+
+### Long sentences
+The cut-off of 100 words for a "long" sentence is pretty arbitrary, but these sentences do surprass an intuitive benchmark for being exceptionally long.
+
+```{r sentence_length_100_words}
+absalom_sentences_long <- absalom_sentences %>%
+  filter(string_length > 99) %>%
+  summarize(total = nrow(.))
+```
+
+```{r sentence_length_100_words_preview}
+
+absalom_sentences_long %>% 
+    kable_trunc(
+    caption = "Sentences over 100 words long",
+    n=0
+     )
+```
+
+## Parentheticals
+
+This was by far the most difficult calculation not because the math was particularly complex, but because it appears one of the parenthesis in Chapter 6 has gone missing. Whether this omission was editorial or Faulkner's own remains a mystery. Given the sheer profusion of parentheses in chapter 6 it is not improbable that Faulkner lost track. In order to make the `regex` matching work an extra parenthesis was added to the `.txt.` file.
+
+```{r calculate_parenthetical_text}
+# NOTE: The amount of parentheses in the text is uneven. An extra one was added at the end of chapter 6.
+parentheses_file <-
+      as.data.frame(read_file("protected_data/faulkner_absalom_parentheses.txt"))
+colnames(parentheses_file) <- "text"
+
+parentheses_clean <- parentheses_file %>%
+  mutate (text = gsub("[\t\n\r]", "", text, perl = TRUE)) 
+ 
+#This string is used for the Python script
+absalom_string <- parentheses_clean$text
+```
+
+### Python Intervention
+Creating a table of nesting levels proved very cumbersome in `R`. There was readily available code in `Python` to do this.
+
+```{python parse_nested_sentences}
+# This code snippet converts all of the nested parentheses into a list object. 
+# Full credit goes to: https://stackoverflow.com/users/68063/gareth-rees
+
+def parenthetic_contents(string):
+    """Generate parenthesized contents in string as pairs (level, contents)."""
+    stack = []
+    for i, c in enumerate(string):
+        if c == '(':
+            stack.append(i)
+        elif c == ')' and stack:
+            start = stack.pop()
+            yield (len(stack)+1, string[start + 1: i],start, start + len(string[start + 1: i]))
+
+py_nested_sentences = list(parenthetic_contents(r.absalom_string))
+```
+
+### Python to R
+The Python has to be converted back to R for manipulation.
+
+```{r convert_python_to_r}
+# Create Parenthetical_df for processing this. 
+# Convert the Python list object into a 2 vector data frame. This gave me no end of trouble because the vector kept turning into a list. Could not find a tidy function for this.
+
+nested_sentence <- py$py_nested_sentences
+
+parenthetical_df <-
+  as.data.frame(matrix(
+    unlist(nested_sentence),
+    nrow = length(nested_sentence),
+    byrow = TRUE
+  ))
+
+colnames(parenthetical_df) <- c("depth", "sentence", "start", "end")
+```
+
+```{r process_parenthetical_levels}
+# Clean up table
+parenthetical_level <- parenthetical_df %>%
+  select(-sentence) %>%
+  mutate(across(.cols = everything(),  ~ as.numeric(.)))
+
+```
+
+## Priming for Plotly
+
+Charting the individual parentheses and nesting levels is involved and requires a lot of custom manipulations to the data. Mostly, this required "tricking" Plotly into how it represented the data. Even though the data all look like "markers" they are actually lines. Without doing so it would not have been clear where the gaps in the data are. Each parenthesis needs a begin point and an end point.
+
+
+```{r prepare_depth_data}
+# Get the values from parenthetical level_one. 
+
+parenthetical_level_one <- parenthetical_level %>%
+  filter(depth == 1)
+
+#Get all start end blocks "outside" level one (start-1, end+1)
+#Pivot into one column so start and end alternate
+# 1 and total absalom lenght
+#arrange by start
+
+parenthetical_main_text <- parenthetical_level_one %>%
+  mutate (depth = 0) %>%
+  mutate (start = start - 1) %>%
+  mutate (end = end + 1) %>%
+  pivot_longer(2:3, values_to = "start") %>%
+  select (-name) %>%
+  add_row(depth = 0, start = 1) %>%
+  add_row(depth = 0, start = str_length(absalom_string)) %>%
+  arrange(start)
+```
+
+```{r combine_parenthetical_data}
+# Pivot start end long, and drop start_stop values
+parenthetical_long <- parenthetical_level %>%
+  pivot_longer(2:3, names_to = "stops", values_to = "start") %>%
+  select(-stops)
+
+#add main text parenthetical to long parenthesis table
+parenthetical_all <- parenthetical_long %>%
+  bind_rows(parenthetical_main_text) 
+```
+
+```{r stagger_parenthetical_data}
+# Number of empty rows to insert
+N = 1
+
+#Every N rows after which empty rows should be inserted
+after_rows = 2
+
+parenthetical_all_staggered <- do.call(
+  rbind, 
+        lapply(
+                split(parenthetical_all,  
+                ceiling(1:NROW(parenthetical_all)/after_rows)),
+                function(a) rbind(a, replace(a[1:N,], TRUE, NA))
+               )
+        )
+
+parenthetical_all_staggered <- parenthetical_all_staggered %>%
+  remove_rownames() %>%
+  mutate(depth = ifelse(is.na(depth), lag(depth), depth))
+```
+
+```{r create_chapter_index}
+# Create a chapter index of when each character occurs. This is useful for keeping track of the data when plotting it.
+
+# Unnest everything by chapter and add row numbers for chapters. Then create a helper column to get the string length of each segment. Then get the cumulative sum with a lag of 1.
+
+chapter_index <- parentheses_clean %>%
+  unnest_regex(chapter_text, text , "Chapter \\d") %>%
+  mutate(chapter = row_number()) %>%
+  mutate(length = str_length(chapter_text)) %>% 
+  mutate(chapter_marker = cumsum(lag(length,default=1)))
+```
+
+```{r find_longest_break}
+# Find the opening phrases of the longest break for annotation. 
+
+parenthetical_longest_break <- parenthetical_df %>%
+  mutate(across(c(1, 3:4),  ~ as.numeric(.))) %>%
+  mutate (gap = end - start) %>%
+  arrange(depth, desc(gap)) %>%
+  group_by(depth) %>%
+  top_n(gap, n= 1) %>%
+  mutate (sentence = paste("(", sentence, ")", sep = "")) %>%
+  mutate (sentence = ifelse(
+    str_count(sentence, "\\s") > 1,
+    paste(word(sentence, 1, 7), "...", sep = ""),
+    sentence
+  ))
+```
+
+
+
+
+
+
+```{r plot_parentheses, out.width="768px",  out.height="250px", fig.cap= "Figure 4: Snapshot of all parentheses in <i>Absalom, Absalom!</i> ordered by their level of nesting."}
+
+plot_parentheses <- plot_ly(
+  parenthetical_all_staggered,
+  x = ~ start,
+  y =  ~ depth,
+  name  = ~ depth,
+  type = 'scatter',
+  mode = 'lines+markers',
+  marker = list(size = 4),
+  line = list(width = 1, dash = "dot"),
+    width = 768,
+    height = 250
+)
+
+plot_parentheses <- plot_parentheses %>%
+  layout(
+    title = list(text = "Parentheses Nesting Levels in <i>Absalom, Absalom!</i>"),
+    xaxis = list(
+      gridwidth = 1,
+      zeroline = FALSE,
+      showline = FALSE,
+      tickmode = 'array',
+      tickvals = chapter_index$chapter_marker,
+      ticktext = chapter_index$chapter,
+      title = list(text = "Chapter")
+    ),
+    yaxis = list(
+      title = list(text = "Nesting Level"),
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showline = FALSE,
+      linewidth = 0,
+      tickmode = 'array',
+      tickvals = c(0, 1, 2, 3, 4),
+      ticktext = c("Main Text", "1: ()", "2: (())", "3: ((()))", "4: (((())))")
+    ),
+    colorway = faulkner_colorway,
+    font = plot_font,
+    margin = m,
+    autosize = FALSE
+  )
+
+plot_parentheses <- plot_parentheses %>%
+  add_annotations(
+    x = parenthetical_longest_break$start,
+    y = parenthetical_longest_break$depth,
+    text = parenthetical_longest_break$sentence,
+    xref = "x",
+    yref = "y",
+    yshift = 15,
+    xanchor = "left",
+    showarrow = FALSE,
+    font = plot_font
+)
+
+plot_parentheses <-  plot_parentheses %>% 
+  config(
+    toImageButtonOptions = list(
+      format = "svg",
+      width = 768,
+      height = 250
+    )
+  )
+
+plot_parentheses
+
+```
+
+
+## Parenthesis: Statistical Overview
+
+It is valuable to know how much of the manuscript is actually parenthetical.
+
+```{r calculate_parenthetical_length}
+parenthetical_sentences <- parenthetical_df %>%
+  select(-start,-end) %>%
+  filter(depth == 1) %>%
+  mutate(word_count = str_count(sentence, "\\S+")) %>% 
+  group_by(depth) %>% 
+  summarize(total = sum(word_count)) %>%
+  mutate(percent = total / absalom_length)
+```
+
+```{r parenthetical_length_preview, echo=FALSE}
+
+parenthetical_sentences %>% 
+  mutate(percent = label_percent(accuracy = 1)(percent)) %>% 
+  kable_trunc(
+    caption = "Parenthetical Sentences",
+    n=0
+     )
+
+```
+
+## Diction overview
+
+The following calculations analyse the word choice.
+
+```{r calculate_unique_words}
+unique_words <- absalom_df %>%
+  unnest_tokens(word, text) %>%
+  distinct(word) %>%
+  filter (word == str_match(word, "[a-z]+"))
+
+word_list <- as.data.frame(read_file("data/words_alpha.txt"))
+colnames(word_list) <- "word"
+
+word_list <- word_list %>%
+  unnest_tokens(word, word)
+
+neologisms_export <- unique_words %>%
+  anti_join(word_list)
+write_csv(neologisms_export, "data/neologisms_export.csv")
+
+neologisms_import <- read_csv("data/neologisms_import.csv")
+neologisms_count <- nrow(neologisms_import)
+
+unique_words_count <- unique_words %>%
+  nrow()
+
+neologisms_unique <- tibble(Word_type = c("Neologisms", "Unique words"),
+  total  = c(neologisms_count, unique_words_count))
+
+```
+
+
+```{r neologisms_unique_preview, echo=FALSE}
+
+neologisms_unique %>% 
+  kable_trunc(
+    caption = "Neologisms and Unique words",
+    n=0
+     )
+
+```
+
+
+
+
+## N-Grams
+
+This calculates the number of repeated phrases in the text. There are quite a number of phrases that echo throughout.
+
+```{r calculate_ngrams, eval=FALSE}
+# Grab all ngrams between 4 and 16 words long. These numbers were arrived at using manual fine tuning. Filter out duplicate phrases by count>1. Add the ngram length.
+absalom_ngram <- absalom_df %>%
+  unnest_ngrams(word, text, n_min = 4, n = 16) %>%
+  count(word) %>%
+  filter(n > 1) %>%
+  mutate (ngram_length = str_count(word, "\\S+"))
+
+deduped <-
+  #the map function iterates a function across the entire vector. In this case, search for each string in each string and keep track of the count.
+  map_df(
+    absalom_ngram$word,
+    ~ str_count(absalom_ngram$word, .x) %>%
+      sum  %>%
+      set_names(.x) %>%
+      enframe(name = "word", value = "count")
+  ) %>%
+  arrange(desc(count))
+
+#filter out any duplicates.
+deduped_short <- deduped %>%
+  filter (count == 1)
+
+#filter out the duplicated ngrams
+ngrams_filtered <- absalom_ngram %>%
+  inner_join(deduped_short)
+
+#recount how often each individual ngram appears in the text. There is a discrepancy between the initial ngram count and their actual appearance in the text. Not sure why, but this solves that issue.
+ngrams_text_count <- ngrams_filtered %>%
+  mutate(text_count =  str_count(absalom_df$text, word))
+```
+
+```{r load_stored_ngrams}
+# write_csv(ngrams_text_count, "data/ngrams_text_count.csv")
+
+ngrams_text_count <- read_csv("data/ngrams_text_count.csv")
+
+```
+
+```{r calculate_ngram_counts}
+# Calculate text lengths.
+absalom_length <- absalom_df %>%
+  unnest_tokens(word, text) %>%
+  nrow()
+
+ngrams_word_count <- ngrams_text_count %>%
+  mutate(total_count = ngram_length * text_count) %>%              
+  group_by(ngram_length) %>%
+  summarise(total = sum(total_count)) %>%
+  arrange(desc(ngram_length)) %>%
+  mutate(cum_total = cumsum(total)) %>%
+  mutate(percent = total / absalom_length) %>%
+  mutate(cum_percent = cum_total / absalom_length)
+
+ngrams_word_count <- ngrams_word_count %>%
+  mutate(title = "absalom")   
+```
+
+
+```{r ngrams_word_count_preview, echo=FALSE}
+
+ngrams_word_count %>% 
+  mutate(percent = label_percent(accuracy = .01)(percent)) %>% 
+  mutate(cum_percent = label_percent(accuracy=.01)(cum_percent)) %>% 
+  kable_trunc(
+    caption = "N-gram lengths and percentage of corpus",
+    n=0
+     )
+
+```
+
+
+```{r analyze_character_ngrams}
+character_names <- absalom_events_short %>% 
+                    unnest_tokens(word, CharacterName) %>% 
+                    distinct(word)
+
+
+major_character_words <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>%
+  filter(CharacterName %in% c("Charles Bon",
+                              "Judith Sutpen",
+                              "Thomas Sutpen",
+                              "Henry Sutpen")) %>%
+  group_by(CharacterName) %>% 
+  unnest_tokens(word, event_sentence) %>% 
+  anti_join(stop_words) %>% 
+  anti_join(character_names) %>% 
+  count(word) %>% 
+  top_n(1) %>% 
+  arrange(CharacterName, desc(n))
+  
+major_character_ngrams <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>%
+  filter(CharacterName %in% c("Charles Bon",
+                              "Judith Sutpen",
+                              "Thomas Sutpen",
+                              "Henry Sutpen")) %>%
+  group_by(CharacterName) %>% 
+  unnest_ngrams(word, event_sentence, n=4) %>% 
+  count(word) %>% 
+  top_n(1) %>% 
+  arrange(CharacterName, desc(n)) 
+
+
+major_character_ngrams_ind <- major_character_ngrams %>% 
+  ungroup() %>% 
+  add_count(word, name = "repeated_ngram") %>% 
+  filter(repeated_ngram<2)
+
+major_character_ngrams_shared <- major_character_ngrams %>% 
+  ungroup() %>% 
+  add_count(word, name = "repeated_ngram") %>% 
+  filter(repeated_ngram>1)
+
+major_narrators_ngrams <- absalom_events_short %>%
+  filter(PresentMentioned == "Present") %>%
+  filter(CharacterName %in% c("Quentin Compson",
+                              "Mr. Compson",
+                              "McCannon, Shreve",
+                              "Rosa Coldfield")) %>%
+  group_by(CharacterName) %>% 
+  unnest_ngrams(word, event_sentence, n=4) %>% 
+  count(word) %>% 
+  top_n(1) %>% 
+  arrange(CharacterName, desc(n))
+
+```
+
+
+```{r major_narrators_ngrams_preview, echo=FALSE}
+
+major_character_ngrams %>% 
+   
+  kable_trunc(
+    caption = "Parenthetical Sentences",
+    n=0
+     )
+
+```
+
